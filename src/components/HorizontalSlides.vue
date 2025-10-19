@@ -38,7 +38,7 @@ onMounted(() => {
       ? ({
           snapTo: (v: number) => {
             const step = 1 / (total - 1)
-            const SAFE = 0.08
+            const SAFE = 0.15
             return v < SAFE || v > 1 - SAFE ? v : gsap.utils.snap(step)(v)
           },
           duration: { min: 0.08, max: 0.16 },
@@ -61,9 +61,10 @@ onMounted(() => {
       end: () => `+=${scrollLen()}`,
       pin: true,
       pinSpacing: true,
-      pinReparent: true, // si al volver a Home ves salto, ponlo en false
-      scrub: 1,
-      anticipatePin: 1,
+      pinReparent: false,
+      pinType: 'fixed', // si al volver a Home ves salto, ponlo en false
+      scrub: 0.4,
+      anticipatePin: 1.2,
       fastScrollEnd: true,
       snap: snapCfg,
       // markers: true,

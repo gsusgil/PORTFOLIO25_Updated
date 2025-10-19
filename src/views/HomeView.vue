@@ -5,7 +5,8 @@ import HorizontalSlides from '@/components/HorizontalSlides.vue'
 // 👇 Añadido: GSAP + ScrollToPlugin para scroll suave sin pelearse con el pin
 import gsap from 'gsap'
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
-gsap.registerPlugin(ScrollToPlugin)
+gsap.registerPlugin(ScrollToPlugin, ScrollTrigger)
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 const skillsOpen = ref(false)
 let skillsTimer: number | undefined
