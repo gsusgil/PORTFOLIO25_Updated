@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 
 /* Rotación del longtail */
-const words = ['designer', 'dev', 'graphic', 'visual', 'web']
+const words = ['designer', 'dev', 'graphic', 'visual', 'web', 'versatil']
 const idx = ref(0)
 const current = computed(() => words[idx.value])
 

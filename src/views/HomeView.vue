@@ -1,24 +1,29 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref, nextTick } from 'vue'
 import HorizontalSlides from '@/components/HorizontalSlides.vue'
-
-// 👇 Añadido: GSAP + ScrollToPlugin para scroll suave sin pelearse con el pin
 import gsap from 'gsap'
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
-gsap.registerPlugin(ScrollToPlugin, ScrollTrigger)
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+gsap.registerPlugin(ScrollToPlugin, ScrollTrigger)
 
 const skillsOpen = ref(false)
 let skillsTimer: number | undefined
 const resumeOpen = ref(false)
 
+// ===== Spline =====
+const showViewer = ref(false)
+const viewerVisible = ref(false)
+const placeholderVisible = ref(true)
+let splineScriptLoaded = false
+const TRANSITION_MS = 160
+
 function onSkillsEnter() {
   clearTimeout(skillsTimer)
-  skillsTimer = window.setTimeout(() => (skillsOpen.value = true), 90) // hover-intent ~90ms
+  skillsTimer = window.setTimeout(() => (skillsOpen.value = true), 90)
 }
 function onSkillsLeave() {
   clearTimeout(skillsTimer)
-  skillsTimer = window.setTimeout(() => (skillsOpen.value = false), 120) // cierra suave
+  skillsTimer = window.setTimeout(() => (skillsOpen.value = false), 120)
 }
 function openResume() {
   resumeOpen.value = true
@@ -29,56 +34,86 @@ function closeResume() {
   document.documentElement.style.overflow = ''
 }
 
-// 👇 Reemplazado: animación suave con GSAP ScrollTo (NO nativo)
-function toProjects() {
-  const el = document.getElementById('slides')
-  if (!el) return
-  gsap.killTweensOf(window)
-  gsap.to(window, {
-    duration: 0.9,
-    ease: 'power2.out',
-    scrollTo: { y: el, autoKill: true, offsetY: 2 }, // 👈 2px fuera del borde
-    overwrite: 'auto',
-  })
-}
-
 function onKey(e: KeyboardEvent) {
   if (e.key === 'Escape') {
     skillsOpen.value = false
     closeResume()
   }
 }
+onMounted(() => document.addEventListener('keydown', onKey))
+onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
 
-function toggleSkills() {
-  skillsOpen.value = !skillsOpen.value
-}
-
-onMounted(() => {
+function ensureSplineLoaded() {
+  if (splineScriptLoaded) return
   const id = 'spline-viewer-loader'
   if (!document.getElementById(id)) {
     const s = document.createElement('script')
     s.type = 'module'
     s.id = id
     s.src = 'https://unpkg.com/@splinetool/viewer@1.10.77/build/spline-viewer.js'
+    s.onload = () => (splineScriptLoaded = true)
     document.head.appendChild(s)
+  } else splineScriptLoaded = true
+}
+
+async function toggleSpline() {
+  // ON →
+  if (!showViewer.value) {
+    ensureSplineLoaded()
+    showViewer.value = true
+    placeholderVisible.value = true
+    viewerVisible.value = false
+    await nextTick()
+    requestAnimationFrame(() => {
+      viewerVisible.value = true
+      // Fade out placeholder con GSAP para evitar solapamiento
+      gsap.to('.brand-off', {
+        opacity: 0,
+        y: 10,
+        duration: TRANSITION_MS / 1000,
+        ease: 'power1.out',
+      })
+      setTimeout(() => (placeholderVisible.value = false), TRANSITION_MS)
+    })
+    return
   }
-  document.addEventListener('keydown', onKey)
-})
-onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
+
+  // OFF →
+  placeholderVisible.value = true
+  gsap.fromTo(
+    '.brand-off',
+    { opacity: 0, y: -10 },
+    { opacity: 1, y: 0, duration: TRANSITION_MS / 1000, ease: 'power1.out' },
+  )
+  viewerVisible.value = false
+  setTimeout(() => {
+    showViewer.value = false
+  }, TRANSITION_MS)
+}
 </script>
 
 <template>
   <section class="hero">
-    <spline-viewer id="spline" url="https://prod.spline.design/59dhmsvB8QAaBOBl/scene.splinecode" />
+    <!-- Stack para cross-fade -->
+    <div class="stack">
+      <spline-viewer
+        v-if="showViewer"
+        id="spline"
+        class="viewer"
+        :class="{ 'is-visible': viewerVisible }"
+        url="https://prod.spline.design/59dhmsvB8QAaBOBl/scene.splinecode"
+      />
+      <div v-show="placeholderVisible" class="spline-off viewer is-visible">
+        <span class="brand-off">gsusgil</span>
+      </div>
+    </div>
 
-    <!-- 👇 UI SOLO DEL HOME -->
+    <!-- UI -->
     <div class="ui">
       <div class="top-row">
         <div class="slot slot--left" @mouseenter="onSkillsEnter" @mouseleave="onSkillsLeave">
-          <button class="link strong" @click="toggleSkills" :aria-expanded="skillsOpen">
-            Skills
-          </button>
-          <div class="skills" :class="{ open: skillsOpen }" role="menu" aria-label="Habilidades">
+          <button class="link strong" :aria-expanded="skillsOpen">Skills</button>
+          <div class="skills" :class="{ open: skillsOpen }">
             <ul class="group">
               <li>Photoshop</li>
               <li>Illustrator</li>
@@ -107,58 +142,88 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
         </div>
       </div>
 
+      <!-- Switch -->
       <div class="bottom-row">
-        <button class="projects" @click="toProjects" aria-label="Ver proyectos">
-          <span>Projects</span>
-          <svg class="chev" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
-            <path
-              d="M6 9l6 6 6-6"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-        </button>
+        <div class="spline-switch-wrapper" @click="toggleSpline">
+          <div class="spline-switch" :class="{ on: showViewer }">
+            <div class="spline-thumb"></div>
+          </div>
+          <span class="spline-switch-label">{{ showViewer ? 'ON' : 'OFF' }}</span>
+          <div class="spline-tooltip">
+            <p v-if="!showViewer">Click me and discover one new function</p>
+            <p v-else>Off please shut me down for continue navigate.</p>
+          </div>
+        </div>
       </div>
     </div>
-    <!-- 👆 UI SOLO DEL HOME -->
   </section>
 
+  <!-- Modal Resume -->
   <teleport to="body">
-    <!-- modal resume igual -->
+    <div v-if="resumeOpen" class="backdrop">
+      <div class="modal">
+        <button class="close" @click="closeResume" aria-label="Close">×</button>
+        <iframe class="doc" src="/resume.pdf" title="Resume"></iframe>
+      </div>
+    </div>
   </teleport>
 
   <HorizontalSlides id="slides" />
 </template>
 
 <style scoped>
-/* ===== Fondo ===== */
 .hero {
-  position: relative; /* importante para que la UI se ancle aquí */
-  height: 100svh;
-  height: 100lvh;
+  position: relative;
   height: 100vh;
   overflow: hidden;
 }
-#spline {
-  display: block;
-  width: 100%;
-  height: 100%;
-  /* 👇 opcional: ayuda a evitar reproyección cuando vuelves desde el pin */
-  backface-visibility: hidden;
-  contain: paint;
-  transform: translateZ(0);
+.stack {
+  position: absolute;
+  inset: 0;
+  background: #fff;
 }
 
-/* Antes estaba fixed. Debe ser absolute para que se vaya al scrollear. */
+/* Fade cross */
+.viewer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+.viewer.is-visible {
+  opacity: 1;
+}
+#spline {
+  background: #fff;
+  width: 100%;
+  height: 100%;
+}
+
+/* Placeholder */
+.spline-off {
+  display: grid;
+  place-items: center;
+}
+.brand-off {
+  color: #e10600;
+  font-family: var(--font-swiss, sans-serif);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  opacity: 1;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
+}
+
+/* UI */
 .ui {
-  position: absolute; /* <— aquí el cambio */
+  position: absolute;
   inset: 0;
   z-index: 20;
   pointer-events: none;
-  /* márgenes */
   --side-pad: clamp(28px, 7vw, 120px);
   --top-off: 88px;
   --bot-off: 96px;
@@ -166,17 +231,15 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
   --muted: rgba(15, 23, 42, 0.78);
   color: var(--txt);
 }
-
-/* 3 textos arriba */
 .top-row {
   position: absolute;
   left: 0;
   right: 0;
-  top: var(--top-off, 88px);
+  top: var(--top-off);
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   align-items: start;
-  padding: 0 var(--side-pad, 80px);
+  padding: 0 var(--side-pad);
 }
 .slot {
   position: relative;
@@ -191,8 +254,6 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
 .slot--right {
   justify-self: end;
 }
-
-/* Botones de texto */
 .link {
   background: transparent;
   border: 0;
@@ -208,8 +269,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
   opacity: 0.85;
 }
 
-/* Panel Skills: easing tipo “springy”, sin fondo */
-/* Panel Skills */
+/* Skills */
 .skills {
   position: absolute;
   top: 2.1rem;
@@ -217,12 +277,11 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
   display: grid;
   gap: 1.1rem;
   opacity: 0;
-  transform: translateY(-8px); /* cae desde ARRIBA */
+  transform: translateY(-8px);
   transition:
     opacity 0.28s cubic-bezier(0.22, 0.61, 0.36, 1),
     transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
   pointer-events: none;
-  will-change: transform, opacity;
 }
 .slot--left:hover .skills,
 .skills.open {
@@ -230,8 +289,6 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
   transform: translateY(0);
   pointer-events: auto;
 }
-
-/* Grupos + stagger top→bottom (entre grupos e ítems) */
 .group {
   list-style: none;
   margin: 0;
@@ -239,46 +296,34 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
   display: grid;
   gap: 0.35rem;
 }
-
-/* Valores base para delay usando CSS vars */
 .group li {
-  /* animación por ítem: fade + caída corta */
   font-weight: 300;
   color: var(--muted);
   font-size: clamp(12px, 1.7vw, 15px);
   line-height: 1.4;
-
   opacity: 0;
-  transform: translateY(-6px); /* cae desde ARRIBA */
+  transform: translateY(-6px);
   transition:
     opacity 0.35s cubic-bezier(0.22, 0.61, 0.36, 1),
     transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
-
-  /* índice de grupo e índice de item -> delay escalonado */
-  --g: 0; /* lo seteo abajo por grupo */
-  --i: 0; /* lo seteo abajo por item  */
+  --g: 0;
+  --i: 0;
   transition-delay: calc(var(--g) * 140ms + var(--i) * 40ms);
 }
-
-/* Activación */
 .skills.open .group li,
 .slot--left:hover .group li {
   opacity: 1;
   transform: translateY(0);
 }
-
-/* Índice por grupo (top→bottom) */
 .skills .group:nth-child(1) li {
   --g: 0;
-} /* primer bloque (arriba) */
+}
 .skills .group:nth-child(2) li {
   --g: 1;
 }
 .skills .group:nth-child(3) li {
   --g: 2;
 }
-
-/* Índice por item dentro del grupo (top→bottom) */
 .skills .group li:nth-child(1) {
   --i: 0;
 }
@@ -310,30 +355,80 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
   --i: 9;
 }
 
-/* Texto abajo centrado */
+/* Bottom */
 .bottom-row {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: var(--bot-off, 96px);
+  bottom: var(--bot-off);
   display: grid;
   place-items: center;
-}
-.projects {
   pointer-events: auto;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  gap: 0.35rem;
-  color: var(--muted);
-  font-weight: 700;
+  isolation: isolate;
+  z-index: 1;
+}
+
+/* Switch */
+.spline-switch-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
   cursor: pointer;
 }
-.projects:hover .chev {
-  transform: translateY(2px);
-  transition: transform 0.15s ease;
+.spline-switch {
+  width: 48px;
+  height: 26px;
+  background: #cbd5e1;
+  border-radius: 999px;
+  position: relative;
+  transition: background 0.18s ease;
+}
+.spline-switch.on {
+  background: #0ea5e9;
+}
+.spline-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.18s ease;
+}
+.spline-switch.on .spline-thumb {
+  transform: translateX(22px);
+}
+.spline-switch-label {
+  font-weight: 700;
+  color: var(--muted);
+  user-select: none;
+}
+.spline-tooltip {
+  position: absolute;
+  bottom: 130%;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  opacity: 0;
+  background: #0f172a;
+  color: #fff;
+  font-size: 0.8rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 6px;
+  text-align: center;
+  line-height: 1.4;
+  width: max-content;
+  max-width: 220px;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  z-index: 2;
+}
+.spline-switch-wrapper:hover .spline-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 /* Modal */
@@ -369,7 +464,6 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
   font-size: 28px;
   cursor: pointer;
 }
-
 @media (max-width: 640px) {
   .ui {
     --top-off: 64px;
