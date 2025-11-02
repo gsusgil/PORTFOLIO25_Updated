@@ -2,24 +2,30 @@
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 
 const modalOpen = ref(false)
-const modalTitle = ref('Título')
-const modalBody = ref('Texto.')
+const modalTitle = ref('Detalle')
+const modalPdf = ref('/resume.pdf')
 const closeBtn = ref<HTMLButtonElement | null>(null)
 
 function openModal(e: MouseEvent) {
   const el = e.currentTarget as HTMLElement | null
   modalTitle.value = el?.getAttribute('data-modal-title') || 'Detalle'
-  modalBody.value = el?.getAttribute('data-modal-body') || 'Contenido no disponible.'
+  const pdfAttr = el?.getAttribute('data-modal-pdf')
+  modalPdf.value = pdfAttr && pdfAttr.trim() !== '' ? pdfAttr : '/resume.pdf'
+
   modalOpen.value = true
+  // seguimos bloqueando el body para que no se mueva el fondo
+  document.documentElement.style.overflow = 'hidden'
   nextTick(() => closeBtn.value?.focus())
 }
 function closeModal() {
   modalOpen.value = false
+  document.documentElement.style.overflow = ''
 }
 function onKey(e: KeyboardEvent) {
   if (e.key === 'Escape' && modalOpen.value) closeModal()
 }
 
+/* hover logic para apagar "DIGITAL" */
 const cardsActive = ref(false)
 let hoverCount = 0
 let touchTimer: number | null = null
@@ -42,6 +48,7 @@ onMounted(() => window.addEventListener('keydown', onKey))
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
   if (touchTimer) clearTimeout(touchTimer)
+  document.documentElement.style.overflow = ''
 })
 </script>
 
@@ -70,7 +77,7 @@ onBeforeUnmount(() => {
                 class="link"
                 type="button"
                 data-modal-title="Editorial A"
-                data-modal-body="Campaña retrato — exploración de luz natural y textura."
+                data-modal-pdf="/resume.pdf"
                 @click="openModal"
               >
                 Ver más
@@ -79,7 +86,7 @@ onBeforeUnmount(() => {
           </div>
         </article>
 
-        <!-- B (tu PNG local) -->
+        <!-- B -->
         <article
           class="card"
           @mouseenter="onCardEnter"
@@ -87,7 +94,6 @@ onBeforeUnmount(() => {
           @touchstart.passive="onCardTouch"
         >
           <div class="card__tab card__tab--img">
-            <!-- ⚠️ Usa ruta pública, no ruta local absoluta -->
             <img src="/image/Frame 1427.png" alt="Modelo B" />
           </div>
           <div class="card__body">
@@ -98,7 +104,7 @@ onBeforeUnmount(() => {
                 class="link"
                 type="button"
                 data-modal-title="Editorial B"
-                data-modal-body="Producción de moda — dirección de arte y textura visual."
+                data-modal-pdf="/pdf/editorial-b.pdf"
                 @click="openModal"
               >
                 Ver más
@@ -128,7 +134,7 @@ onBeforeUnmount(() => {
                 class="link"
                 type="button"
                 data-modal-title="Editorial C"
-                data-modal-body="Retrato artístico — composición con luz dura y fondo oscuro."
+                data-modal-pdf="/resume.pdf"
                 @click="openModal"
               >
                 Ver más
@@ -139,13 +145,15 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Modal -->
+    <!-- Modal PDF -->
     <teleport to="body">
-      <div class="modal-backdrop" :class="{ show: modalOpen }" @click.self="closeModal">
-        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-          <h1 id="modal-title">{{ modalTitle }}</h1>
-          <p id="modal-body">{{ modalBody }}</p>
-          <button class="close" ref="closeBtn" type="button" @click="closeModal">Cerrar</button>
+      <div v-if="modalOpen" class="backdrop" @click.self="closeModal">
+        <div class="modal" @click.stop>
+          <button class="close" ref="closeBtn" type="button" @click="closeModal" aria-label="Close">
+            ×
+          </button>
+          <!-- aquí queremos scroll vertical -->
+          <iframe class="doc" :src="modalPdf" :title="modalTitle"></iframe>
         </div>
       </div>
     </teleport>
@@ -153,16 +161,14 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
-/* ===== solo Slide3 ===== */
 .panel.s3 {
-  --tab-h: 64px;
   --radius: 14px;
   --w: 360px;
   --txt: #0f172a;
   --muted: rgba(15, 23, 42, 0.78);
+  --peek-h: 240px;
 }
 
-/* Lienzo */
 .panel.s3 .stage {
   position: relative;
   height: 100vh;
@@ -194,7 +200,6 @@ onBeforeUnmount(() => {
   filter: blur(10px);
 }
 
-/* Carril */
 .panel.s3 .deck {
   position: absolute;
   left: 0;
@@ -208,7 +213,6 @@ onBeforeUnmount(() => {
   z-index: 1;
 }
 
-/* ===== CARD ===== */
 .panel.s3 .card {
   padding: 0 !important;
   background: #fff !important;
@@ -221,51 +225,43 @@ onBeforeUnmount(() => {
   position: relative;
   border-top-left-radius: var(--radius);
   border-top-right-radius: var(--radius);
-  transform: translateY(calc(100% - var(--tab-h))) !important;
+  transform: translateY(calc(100% - var(--peek-h))) !important;
   transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .panel.s3 .card:hover {
   transform: translateY(0) !important;
 }
 
-/* ===== Header (imagen de portada) ===== */
+/* header-img con misma altura en todas */
 .panel.s3 .card__tab {
-  background: #6b1f1c; /* fondo solo de respaldo */
+  height: var(--peek-h);
   border-top-left-radius: var(--radius);
   border-top-right-radius: var(--radius);
   overflow: hidden;
   display: block;
   line-height: 0;
+  background: #eee;
 }
-
-/* cuando la pestaña es solo imagen, quita el fondo */
 .panel.s3 .card__tab--img {
   background: transparent;
 }
-
-/* 🔧 Imagen que se ajusta dinámicamente */
 .panel.s3 .card__tab img {
   width: 100%;
-  height: auto;
-  max-height: 240px; /* límite visual adaptable */
+  height: 100%;
   object-fit: cover;
   object-position: center center;
   display: block;
   transition: transform 0.35s ease;
 }
-
-/* Suave zoom al hover */
 .panel.s3 .card:hover .card__tab img {
   transform: scale(1.05);
 }
 
-/* ===== Cuerpo ===== */
+/* cuerpo */
 .panel.s3 .card__body {
   padding: 18px;
   display: grid;
   gap: 12px;
-  position: relative;
-  z-index: 1;
   background: #fff;
   min-height: 180px;
 }
@@ -291,42 +287,45 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-/* ===== Modal ===== */
-.panel.s3 .modal-backdrop {
+/* ===== Modal (igual al de home pero sin botón de descarga) ===== */
+.backdrop {
   position: fixed;
   inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  background: rgba(15, 23, 42, 0.6);
-  padding: 24px;
-  z-index: 1000;
+  z-index: 2000;
+  background: rgba(255, 255, 255, 0.7);
+  display: grid;
+  place-items: center;
+  padding: 2rem;
 }
-.panel.s3 .modal-backdrop.show {
-  display: flex;
-}
-.panel.s3 .modal {
-  max-width: 680px;
-  width: 100%;
+.modal {
+  position: relative;
+  width: min(1000px, 92vw);
+  height: min(80vh, 900px);
   background: #fff;
-  color: #0f172a;
-  border-radius: 16px;
-  box-shadow: 0 40px 90px rgba(0, 0, 0, 0.45);
-  padding: 22px;
+  border-radius: 12px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
+  overflow: auto; /* 👈 aquí activamos scroll dentro */
+  display: flex;
+  flex-direction: column;
 }
-.panel.s3 .close {
-  margin-top: 16px;
-  display: inline-block;
+.doc {
+  width: 100%;
+  height: 100%;
   border: 0;
-  background: rgba(255, 255, 255, 0.8);
-  color: #0f172a;
-  padding: 10px 14px;
-  border-radius: 999px;
-  font-weight: 700;
+  flex: 1 1 auto;
+}
+.close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: transparent;
+  border: 0;
+  font-size: 28px;
   cursor: pointer;
+  line-height: 1;
 }
 
-/* ===== Responsive ===== */
+/* responsive */
 @media (max-width: 1100px) {
   .panel.s3 {
     --w: 320px;
@@ -349,11 +348,6 @@ onBeforeUnmount(() => {
   }
   .panel.s3 .deck {
     justify-content: space-evenly;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .panel.s3 .card {
-    transition: none;
   }
 }
 </style>

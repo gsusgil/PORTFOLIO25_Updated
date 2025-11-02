@@ -34,7 +34,7 @@
           loop
           playsinline
         ></video>
-        <div class="video-label">Showreel</div>
+       
       </div>
 
       <!-- 5. texto con overlay -->
