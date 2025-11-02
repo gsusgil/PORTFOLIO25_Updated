@@ -41,12 +41,7 @@
       <div
         class="cell text"
         @mouseenter="showFlyout = true"
-        @mouseleave="
-          () => {
-            showFlyout = false
-            onCellLeave($event as any)
-          }
-        "
+        @mouseleave="onTextLeave"
         @mousemove="onCellMove"
       >
         <div class="text-content">
@@ -55,7 +50,7 @@
           <p class="hint">Hover para ver más</p>
         </div>
 
-        <!-- overlay alineado con el de arriba (le sumamos el gap) -->
+        <!-- overlay alineado -->
         <div class="text-flyout" :class="{ 'is-open': showFlyout }">
           <h2>Dirección de arte</h2>
           <p>
@@ -135,14 +130,12 @@ onBeforeUnmount(() => {
   document.documentElement.classList.remove('no-scroll')
 })
 
-/* sombra dinámica genérica (para title, video, text) */
+/* sombra dinámica genérica (title, video, text) */
 function onCellMove(e: MouseEvent) {
   const el = e.currentTarget as HTMLElement
   const r = el.getBoundingClientRect()
-  const nx = (e.clientX - r.left) / r.width - 0.5 // -0.5 → 0.5
+  const nx = (e.clientX - r.left) / r.width - 0.5
   const ny = (e.clientY - r.top) / r.height - 0.5
-
-  // cuanto más lejos del centro, más sombra hacia ese lado
   const offsetX = -nx * 18
   const offsetY = -ny * 14
   el.style.boxShadow = `${offsetX}px ${offsetY}px 34px rgba(15, 23, 42, 0.14)`
@@ -154,7 +147,13 @@ function onCellLeave(e: MouseEvent) {
   el.style.transition = 'box-shadow 160ms ease-out'
 }
 
-/* parallax + sombra para las imágenes */
+/* 👇 esta es la que faltaba para no usar $event en el template */
+function onTextLeave(e: MouseEvent) {
+  showFlyout.value = false
+  onCellLeave(e)
+}
+
+/* parallax + sombra para imágenes */
 function onSlotMove(e: MouseEvent) {
   const box = e.currentTarget as HTMLElement
   const img = box.querySelector('img') as HTMLElement | null
@@ -162,12 +161,10 @@ function onSlotMove(e: MouseEvent) {
   const nx = (e.clientX - r.left) / r.width - 0.5
   const ny = (e.clientY - r.top) / r.height - 0.5
 
-  // parallax que ya tenías
   if (img) {
     img.style.transform = `translate(${nx * 14}px, ${ny * 14}px) scale(1.4)`
   }
 
-  // sombra dinámica sobre la tarjeta de imagen
   const offsetX = -nx * 18
   const offsetY = -ny * 14
   box.style.boxShadow = `${offsetX}px ${offsetY}px 34px rgba(15, 23, 42, 0.14)`
@@ -198,7 +195,6 @@ function onSlotLeave(e: MouseEvent) {
   position: relative;
   overflow: visible;
   display: grid;
-  /* guardamos el gap en una var para usarlo en el overlay */
   --gap: 18px;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, 1fr);
@@ -213,7 +209,6 @@ function onSlotLeave(e: MouseEvent) {
   overflow: visible;
   background: #fff;
   border-radius: 24px;
-  /* pequeña sombra de reposo muy baja */
   box-shadow: 0 0 0 rgba(0, 0, 0, 0);
   transition: box-shadow 120ms ease-out;
 }
@@ -325,9 +320,7 @@ function onSlotLeave(e: MouseEvent) {
 .text-flyout {
   position: absolute;
   left: 0;
-  /* estaba en -100%, ahora sube también el gap del grid */
   top: calc(-100% - var(--gap));
-  /* y le sumamos ese gap abajo para que quede al ras */
   height: calc(200% + var(--gap));
   width: 100%;
   background: #fff;
