@@ -277,6 +277,8 @@ onBeforeUnmount(() => {
   display: grid;
   row-gap: 14px;
   justify-items: center;
+  scale: 0.9;
+  transform-origin: center;
 }
 .s2-stage {
   width: min(92vw, 900px);

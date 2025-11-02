@@ -56,16 +56,21 @@ onBeforeUnmount(() => {
           @mouseleave="onCardLeave"
           @touchstart.passive="onCardTouch"
         >
-          <div class="card__tab">Resumen A</div>
+          <div class="card__tab">
+            <img
+              src="https://images.unsplash.com/photo-1595152772835-219674b2a8a6?auto=format&fit=crop&w=960&h=360&q=80&fm=png"
+              alt="Modelo A"
+            />
+          </div>
           <div class="card__body">
-            <h3 class="card__title">Título A</h3>
-            <p class="card__p">Contenido de la card A. Aparece completo al subir.</p>
+            <h3 class="card__title">Editorial A</h3>
+            <p class="card__p">Campaña retrato – enfoque en composición y luz natural.</p>
             <div class="card__actions">
               <button
                 class="link"
                 type="button"
-                data-modal-title="Detalle A"
-                data-modal-body="Este es el detalle A (h1 + p)."
+                data-modal-title="Editorial A"
+                data-modal-body="Campaña retrato — exploración de luz natural y textura."
                 @click="openModal"
               >
                 Ver más
@@ -74,23 +79,26 @@ onBeforeUnmount(() => {
           </div>
         </article>
 
-        <!-- B -->
+        <!-- B (tu PNG local) -->
         <article
           class="card"
           @mouseenter="onCardEnter"
           @mouseleave="onCardLeave"
           @touchstart.passive="onCardTouch"
         >
-          <div class="card__tab">Resumen B</div>
+          <div class="card__tab card__tab--img">
+            <!-- ⚠️ Usa ruta pública, no ruta local absoluta -->
+            <img src="/image/Frame 1427.png" alt="Modelo B" />
+          </div>
           <div class="card__body">
-            <h3 class="card__title">Título B</h3>
-            <p class="card__p">Contenido de la card B. Aparece completo al subir.</p>
+            <h3 class="card__title">Editorial B</h3>
+            <p class="card__p">Producción de moda con contraste de color y textura.</p>
             <div class="card__actions">
               <button
                 class="link"
                 type="button"
-                data-modal-title="Detalle B"
-                data-modal-body="Este es el detalle B (h1 + p)."
+                data-modal-title="Editorial B"
+                data-modal-body="Producción de moda — dirección de arte y textura visual."
                 @click="openModal"
               >
                 Ver más
@@ -106,16 +114,21 @@ onBeforeUnmount(() => {
           @mouseleave="onCardLeave"
           @touchstart.passive="onCardTouch"
         >
-          <div class="card__tab">Resumen C</div>
+          <div class="card__tab">
+            <img
+              src="https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=960&h=360&q=80&fm=png"
+              alt="Modelo C"
+            />
+          </div>
           <div class="card__body">
-            <h3 class="card__title">Título C</h3>
-            <p class="card__p">Contenido de la card C. Aparece completo al subir.</p>
+            <h3 class="card__title">Editorial C</h3>
+            <p class="card__p">Fotografía artística de retrato – luz dura y fondo oscuro.</p>
             <div class="card__actions">
               <button
                 class="link"
                 type="button"
-                data-modal-title="Detalle C"
-                data-modal-body="Este es el detalle C (h1 + p)."
+                data-modal-title="Editorial C"
+                data-modal-body="Retrato artístico — composición con luz dura y fondo oscuro."
                 @click="openModal"
               >
                 Ver más
@@ -145,7 +158,6 @@ onBeforeUnmount(() => {
   --tab-h: 64px;
   --radius: 14px;
   --w: 360px;
-  --tab: #6b1f1c;
   --txt: #0f172a;
   --muted: rgba(15, 23, 42, 0.78);
 }
@@ -196,63 +208,66 @@ onBeforeUnmount(() => {
   z-index: 1;
 }
 
-/* ===== CARD (override total) ===== */
+/* ===== CARD ===== */
 .panel.s3 .card {
-  /* anular herencias globales peligrosas */
   padding: 0 !important;
   background: #fff !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
   border: 0 !important;
   box-shadow: 18px 24px 24px rgba(0, 0, 0, 0.08) !important;
-
   width: var(--w);
-  height: min(75vh, 620px);
+  height: min(65vh, 520px);
   overflow: hidden;
   pointer-events: auto;
   position: relative;
-
   border-top-left-radius: var(--radius);
   border-top-right-radius: var(--radius);
-
-  /* estado inicial: SOLO pestaña visible */
   transform: translateY(calc(100% - var(--tab-h))) !important;
   transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .panel.s3 .card:hover {
-  /* levantar al hover (forzado) */
   transform: translateY(0) !important;
 }
-.panel.s3 .card::before {
-  display: none !important;
-} /* por si hay overlays globales */
 
-/* Pestaña */
+/* ===== Header (imagen de portada) ===== */
 .panel.s3 .card__tab {
-  height: var(--tab-h);
-  background: var(--tab);
-  color: #fff;
+  background: #6b1f1c; /* fondo solo de respaldo */
   border-top-left-radius: var(--radius);
   border-top-right-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  padding: 0 18px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  user-select: none;
-  cursor: pointer;
-  position: relative;
-  z-index: 2;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+  display: block;
+  line-height: 0;
 }
 
-/* Cuerpo */
+/* cuando la pestaña es solo imagen, quita el fondo */
+.panel.s3 .card__tab--img {
+  background: transparent;
+}
+
+/* 🔧 Imagen que se ajusta dinámicamente */
+.panel.s3 .card__tab img {
+  width: 100%;
+  height: auto;
+  max-height: 240px; /* límite visual adaptable */
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+  transition: transform 0.35s ease;
+}
+
+/* Suave zoom al hover */
+.panel.s3 .card:hover .card__tab img {
+  transform: scale(1.05);
+}
+
+/* ===== Cuerpo ===== */
 .panel.s3 .card__body {
   padding: 18px;
   display: grid;
   gap: 12px;
   position: relative;
   z-index: 1;
+  background: #fff;
+  min-height: 180px;
 }
 .panel.s3 .card__title {
   margin: 0;
@@ -276,7 +291,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-/* Modal */
+/* ===== Modal ===== */
 .panel.s3 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -299,13 +314,6 @@ onBeforeUnmount(() => {
   box-shadow: 0 40px 90px rgba(0, 0, 0, 0.45);
   padding: 22px;
 }
-.panel.s3 .modal h1 {
-  margin: 0 0 8px;
-}
-.panel.s3 .modal p {
-  margin: 0;
-  line-height: 1.7;
-}
 .panel.s3 .close {
   margin-top: 16px;
   display: inline-block;
@@ -316,10 +324,9 @@ onBeforeUnmount(() => {
   border-radius: 999px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
-/* Responsive */
+/* ===== Responsive ===== */
 @media (max-width: 1100px) {
   .panel.s3 {
     --w: 320px;

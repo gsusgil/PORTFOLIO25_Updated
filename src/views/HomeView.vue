@@ -8,6 +8,10 @@ gsap.registerPlugin(ScrollToPlugin, ScrollTrigger)
 
 const skillsOpen = ref(false)
 let skillsTimer: number | undefined
+
+const contactOpen = ref(false)
+let contactTimer: number | undefined
+
 const resumeOpen = ref(false)
 
 // ===== Spline =====
@@ -17,6 +21,80 @@ const placeholderVisible = ref(true)
 let splineScriptLoaded = false
 const TRANSITION_MS = 160
 
+// ===== cursor rojo cuando está apagado =====
+const cursorX = ref(0)
+const cursorY = ref(0)
+let targetX = 0
+let targetY = 0
+let currentX = 0
+let currentY = 0
+let rafId: number | null = null
+
+function onMouseMove(e: MouseEvent) {
+  // posición objetivo, desplazada un poco
+  targetX = e.clientX + 16
+  targetY = e.clientY + 10
+
+  if (!rafId) animateCursor()
+}
+
+function animateCursor() {
+  // suavizado: cuanto más bajo el factor, más lento sigue el puntero
+  const ease = 0.12
+
+  currentX += (targetX - currentX) * ease
+  currentY += (targetY - currentY) * ease
+
+  cursorX.value = currentX
+  cursorY.value = currentY
+
+  rafId = requestAnimationFrame(animateCursor)
+}
+
+// ===== Marca (gsusgil) =====
+const brandVariants = [
+  { weight: 300, color: '#ffd4d4' },
+  { weight: 400, color: '#ffb3b3' },
+  { weight: 500, color: '#ff8c8c' },
+  { weight: 600, color: '#ff6b6b' },
+  { weight: 700, color: '#ff4d4d' },
+  { weight: 800, color: '#ff3030' },
+  { weight: 900, color: '#ff1111' },
+]
+const brandIndex = ref(4) // 700
+const brandWeight = ref(brandVariants[brandIndex.value].weight)
+const brandColor = ref(brandVariants[brandIndex.value].color)
+let brandTimer: number | undefined
+
+function stepBrandVariant() {
+  const goUp = Math.random() < 0.6
+  let next = brandIndex.value + (goUp ? 1 : -1)
+
+  if (next < 0) next = 1
+  if (next >= brandVariants.length) next = brandVariants.length - 2
+
+  brandIndex.value = next
+  const v = brandVariants[next]
+  brandWeight.value = v.weight
+  brandColor.value = v.color
+}
+
+function onBrandEnter() {
+  clearInterval(brandTimer)
+  stepBrandVariant()
+  brandTimer = window.setInterval(() => {
+    stepBrandVariant()
+  }, 420)
+}
+function onBrandLeave() {
+  clearInterval(brandTimer)
+  brandTimer = undefined
+  brandIndex.value = 4
+  brandWeight.value = brandVariants[4].weight
+  brandColor.value = brandVariants[4].color
+}
+
+// ===== Skills hover =====
 function onSkillsEnter() {
   clearTimeout(skillsTimer)
   skillsTimer = window.setTimeout(() => (skillsOpen.value = true), 90)
@@ -25,6 +103,39 @@ function onSkillsLeave() {
   clearTimeout(skillsTimer)
   skillsTimer = window.setTimeout(() => (skillsOpen.value = false), 120)
 }
+
+// ===== Contact hover =====
+function onContactEnter() {
+  clearTimeout(contactTimer)
+  contactTimer = window.setTimeout(() => (contactOpen.value = true), 90)
+}
+function onContactLeave() {
+  clearTimeout(contactTimer)
+  contactTimer = window.setTimeout(() => (contactOpen.value = false), 120)
+}
+
+// ===== Contact data =====
+const CONTACT_EMAIL = 'tuemail@correo.com'
+const copied = ref(false)
+
+function copyEmail() {
+  if (navigator?.clipboard?.writeText) {
+    navigator.clipboard.writeText(CONTACT_EMAIL).then(
+      () => {
+        copied.value = true
+        setTimeout(() => {
+          copied.value = false
+        }, 1200)
+      },
+      () => {
+        alert('Copy this:\n' + CONTACT_EMAIL)
+      },
+    )
+  } else {
+    alert('Copy this:\n' + CONTACT_EMAIL)
+  }
+}
+
 function openResume() {
   resumeOpen.value = true
   document.documentElement.style.overflow = 'hidden'
@@ -37,11 +148,20 @@ function closeResume() {
 function onKey(e: KeyboardEvent) {
   if (e.key === 'Escape') {
     skillsOpen.value = false
+    contactOpen.value = false
     closeResume()
   }
 }
-onMounted(() => document.addEventListener('keydown', onKey))
-onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
+onMounted(() => {
+  document.addEventListener('keydown', onKey)
+  document.addEventListener('mousemove', onMouseMove)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', onKey)
+  document.removeEventListener('mousemove', onMouseMove)
+  clearInterval(brandTimer)
+  if (rafId) cancelAnimationFrame(rafId)
+})
 
 function ensureSplineLoaded() {
   if (splineScriptLoaded) return
@@ -66,7 +186,6 @@ async function toggleSpline() {
     await nextTick()
     requestAnimationFrame(() => {
       viewerVisible.value = true
-      // Fade out placeholder con GSAP para evitar solapamiento
       gsap.to('.brand-off', {
         opacity: 0,
         y: 10,
@@ -94,6 +213,13 @@ async function toggleSpline() {
 
 <template>
   <section class="hero">
+    <!-- cursor rojo SOLO cuando el spline está apagado -->
+    <div
+      v-if="!showViewer"
+      class="cursor-dot"
+      :style="{ left: cursorX + 'px', top: cursorY + 'px' }"
+    ></div>
+
     <!-- Stack para cross-fade -->
     <div class="stack">
       <spline-viewer
@@ -104,16 +230,22 @@ async function toggleSpline() {
         url="https://prod.spline.design/59dhmsvB8QAaBOBl/scene.splinecode"
       />
       <div v-show="placeholderVisible" class="spline-off viewer is-visible">
-        <span class="brand-off">gsusgil</span>
+        <!-- título -->
+        <span class="brand-off" @mouseenter="onBrandEnter" @mouseleave="onBrandLeave">
+          <span class="brand-off__inner" :style="{ fontWeight: brandWeight, color: brandColor }">
+            gsusgil
+          </span>
+        </span>
       </div>
     </div>
 
     <!-- UI -->
     <div class="ui">
       <div class="top-row">
+        <!-- Skills -->
         <div class="slot slot--left" @mouseenter="onSkillsEnter" @mouseleave="onSkillsLeave">
           <button class="link strong" :aria-expanded="skillsOpen">Skills</button>
-          <div class="skills" :class="{ open: skillsOpen }">
+          <div class="skills panel" :class="{ open: skillsOpen }">
             <ul class="group">
               <li>Photoshop</li>
               <li>Illustrator</li>
@@ -133,12 +265,30 @@ async function toggleSpline() {
           </div>
         </div>
 
+        <!-- Resume -->
         <div class="slot slot--center">
           <button class="link" @click="openResume">Resume</button>
         </div>
 
-        <div class="slot slot--right">
+        <!-- Contact -->
+        <div class="slot slot--right" @mouseenter="onContactEnter" @mouseleave="onContactLeave">
           <button class="link">Contact</button>
+          <div class="contacts panel" :class="{ open: contactOpen }">
+            <ul class="group">
+              <li>
+                LinkedIn
+                <span class="placeholder">(coming soon)</span>
+              </li>
+              <li @click="copyEmail">
+                Email
+                <span v-if="copied" class="copied">Copied!</span>
+              </li>
+              <li>
+                Teléfono (ES)
+                <span class="placeholder">+34 600 000 000</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -148,10 +298,13 @@ async function toggleSpline() {
           <div class="spline-switch" :class="{ on: showViewer }">
             <div class="spline-thumb"></div>
           </div>
-          <span class="spline-switch-label">{{ showViewer ? 'ON' : 'OFF' }}</span>
+          <!-- ✅ texto según estado -->
+          <span class="spline-switch-label">
+            {{ showViewer ? 'hit me again' : 'hit me' }}
+          </span>
           <div class="spline-tooltip">
-            <p v-if="!showViewer">Click me and discover one new function</p>
-            <p v-else>Off please shut me down for continue navigate.</p>
+            <p v-if="!showViewer">HIT MEto load the spline</p>
+            <p v-else>HIT ME AGAIN to turn it off & continue navigating</p>
           </div>
         </div>
       </div>
@@ -160,10 +313,14 @@ async function toggleSpline() {
 
   <!-- Modal Resume -->
   <teleport to="body">
-    <div v-if="resumeOpen" class="backdrop">
-      <div class="modal">
-        <button class="close" @click="closeResume" aria-label="Close">×</button>
+    <div v-if="resumeOpen" class="backdrop" @click="closeResume">
+      <div class="modal" @click.stop>
+        <button class="close" @click="closeResume" aria-label="Cerrar modal">×</button>
         <iframe class="doc" src="/resume.pdf" title="Resume"></iframe>
+
+        <div class="download-wrap">
+          <a href="/resume.pdf" download class="download-btn">Descargar PDF</a>
+        </div>
       </div>
     </div>
   </teleport>
@@ -181,6 +338,18 @@ async function toggleSpline() {
   position: absolute;
   inset: 0;
   background: #fff;
+}
+
+/* cursor rojo */
+.cursor-dot {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  background: #ff4d4d;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 999;
 }
 
 /* Fade cross */
@@ -206,16 +375,27 @@ async function toggleSpline() {
   display: grid;
   place-items: center;
 }
+
+/* ===== Marca ===== */
 .brand-off {
-  color: #e10600;
   font-family: var(--font-swiss, sans-serif);
   font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.7em;
   opacity: 1;
   transition:
     opacity 0.16s ease,
     transform 0.16s ease;
+  cursor: pointer;
+}
+.brand-off__inner {
+  display: inline-block;
+  transition:
+    font-weight 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
+}
+.brand-off:hover .brand-off__inner {
+  transform: translateY(-1px);
 }
 
 /* UI */
@@ -269,11 +449,11 @@ async function toggleSpline() {
   opacity: 0.85;
 }
 
-/* Skills */
-.skills {
+/* Panels tipo dropdown */
+.panel {
   position: absolute;
   top: 2.1rem;
-  left: 0;
+  right: 0;
   display: grid;
   gap: 1.1rem;
   opacity: 0;
@@ -283,8 +463,11 @@ async function toggleSpline() {
     transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
   pointer-events: none;
 }
-.slot--left:hover .skills,
-.skills.open {
+.slot--left .panel {
+  left: 0;
+  right: auto;
+}
+.panel.open {
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
@@ -310,49 +493,39 @@ async function toggleSpline() {
   --i: 0;
   transition-delay: calc(var(--g) * 140ms + var(--i) * 40ms);
 }
-.skills.open .group li,
-.slot--left:hover .group li {
+
+/* stagger */
+.panel.open .group li,
+.slot--left:hover .group li,
+.slot--right:hover .group li {
   opacity: 1;
   transform: translateY(0);
 }
-.skills .group:nth-child(1) li {
-  --g: 0;
+
+/* contactos: SIN hover de color */
+.contacts .group li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: default;
 }
-.skills .group:nth-child(2) li {
-  --g: 1;
+.contacts .group li:nth-child(2) {
+  cursor: pointer;
 }
-.skills .group:nth-child(3) li {
-  --g: 2;
+.placeholder {
+  font-size: 0.68rem;
+  opacity: 0.7;
 }
-.skills .group li:nth-child(1) {
-  --i: 0;
-}
-.skills .group li:nth-child(2) {
-  --i: 1;
-}
-.skills .group li:nth-child(3) {
-  --i: 2;
-}
-.skills .group li:nth-child(4) {
-  --i: 3;
-}
-.skills .group li:nth-child(5) {
-  --i: 4;
-}
-.skills .group li:nth-child(6) {
-  --i: 5;
-}
-.skills .group li:nth-child(7) {
-  --i: 6;
-}
-.skills .group li:nth-child(8) {
-  --i: 7;
-}
-.skills .group li:nth-child(9) {
-  --i: 8;
-}
-.skills .group li:nth-child(10) {
-  --i: 9;
+
+/* popup copy */
+.copied {
+  font-size: 0.65rem;
+  background: #ffffff;
+  color: #000000;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
 }
 
 /* Bottom */
@@ -385,7 +558,7 @@ async function toggleSpline() {
   transition: background 0.18s ease;
 }
 .spline-switch.on {
-  background: #0ea5e9;
+  background: #8ff5b5;
 }
 .spline-thumb {
   position: absolute;
@@ -404,6 +577,7 @@ async function toggleSpline() {
   font-weight: 700;
   color: var(--muted);
   user-select: none;
+  text-transform: lowercase;
 }
 .spline-tooltip {
   position: absolute;
@@ -449,11 +623,14 @@ async function toggleSpline() {
   border-radius: 12px;
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .doc {
   width: 100%;
   height: 100%;
   border: 0;
+  flex: 1 1 auto;
 }
 .close {
   position: absolute;
@@ -463,11 +640,39 @@ async function toggleSpline() {
   border: 0;
   font-size: 28px;
   cursor: pointer;
+  line-height: 1;
+}
+.download-wrap {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  padding: 0.8rem 1rem 1.1rem;
+  background: #fff;
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
+}
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #0f172a;
+  color: #fff;
+  padding: 0.45rem 1.05rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.download-btn:hover {
+  opacity: 0.9;
 }
 @media (max-width: 640px) {
   .ui {
     --top-off: 64px;
     --bot-off: 64px;
+  }
+  .modal {
+    height: 80vh;
+    padding-top: 0;
   }
 }
 </style>

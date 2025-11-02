@@ -1,399 +1,354 @@
-<script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
-
-/* === CONFIG === */
-const BASE = import.meta.env.BASE_URL || '/'
-
-type ProjectItem = {
-  src: string
-  alt: string
-  caption: string // descripción completa; se recorta a 100 chars en el overlay
-}
-
-const projects = ref<ProjectItem[]>([
-  {
-    src: `${BASE}image/project1.jpg`,
-    alt: 'Editorial series — Hat portrait',
-    caption:
-      'Serie editorial en blanco y negro con énfasis en sombras duras y dirección de arte minimalista.',
-  },
-  {
-    src: `${BASE}image/project2.jpg`,
-    alt: 'Beauty close-up — Studio lighting',
-    caption:
-      'Retrato beauty con iluminación de estudio y retoque fino orientado a campañas de skin-care.',
-  },
-])
-
-/* === MODAL STATE === */
-const isOpen = ref(false)
-const activeIndex = ref<number | null>(null)
-const activeItem = computed(() =>
-  activeIndex.value == null ? null : projects.value[activeIndex.value],
-)
-const caption100 = computed(() => {
-  const txt = activeItem.value?.caption ?? ''
-  return txt.length > 100 ? txt.slice(0, 100).trimEnd() + '…' : txt
-})
-
-function openModal(i: number) {
-  activeIndex.value = i
-  isOpen.value = true
-  lockScroll(true)
-}
-function closeModal() {
-  isOpen.value = false
-  activeIndex.value = null
-  lockScroll(false)
-}
-function onKey(e: KeyboardEvent) {
-  if (!isOpen.value) return
-  if (e.key === 'Escape') closeModal()
-  if (e.key === 'ArrowRight' && activeIndex.value != null) {
-    activeIndex.value = (activeIndex.value + 1) % projects.value.length
-  }
-  if (e.key === 'ArrowLeft' && activeIndex.value != null) {
-    activeIndex.value = (activeIndex.value - 1 + projects.value.length) % projects.value.length
-  }
-}
-
-/* Evita scroll de fondo cuando el modal está abierto */
-function lockScroll(on: boolean) {
-  const el = document.documentElement
-  if (on) el.classList.add('no-scroll')
-  else el.classList.remove('no-scroll')
-}
-
-onMounted(() => {
-  window.addEventListener('keydown', onKey)
-})
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onKey)
-  lockScroll(false)
-})
-</script>
-
 <template>
-  <!-- Mantén .panel para que GSAP cuente este slide -->
-  <section class="panel slide1">
-    <div class="s1-grid">
-      <!-- Columna izquierda: título + media (2 imgs + video) -->
-      <div class="s1-left">
-        <h2 class="s1-title">Projects</h2>
-
-        <div class="s1-media">
-          <!-- 2 imágenes con hover-zoom -->
-          <figure v-for="(item, i) in projects" :key="item.src" class="s1-card">
-            <button
-              class="s1-thumb"
-              type="button"
-              :aria-label="`Abrir imagen: ${item.alt}`"
-              @click="openModal(i)"
-            >
-              <img :src="item.src" :alt="item.alt" />
-            </button>
-            <figcaption class="sr-only">{{ item.caption }}</figcaption>
-          </figure>
-
-          <!-- Video 16:9 -->
-          <div class="s1-video">
-            <video
-              class="s1-video-el"
-              :src="`${BASE}video/demo.mp4`"
-              controls
-              playsinline
-              preload="metadata"
-              :poster="`${BASE}image/video-poster.jpg`"
-            ></video>
-          </div>
+  <section class="panel bento-full">
+    <div class="grid">
+      <!-- 1. título -->
+      <div class="cell title">
+        <div class="title-inner">
+          <span class="line">PRO</span>
+          <span class="line">JECTS</span>
+          <span class="num">25</span>
         </div>
       </div>
 
-      <!-- Columna derecha: texto explicativo -->
-      <div class="s1-right">
-        <div class="s1-copy">
-          <h3 class="s1-subtitle">Dirección de arte y postproducción</h3>
+      <!-- 2. imagen 1 -->
+      <div class="cell img" @mousemove="onSlotMove" @mouseleave="onSlotLeave">
+        <button class="img-btn" type="button" @click="openImageModal(0)">
+          <img :src="images[0].src" :alt="images[0].alt" />
+        </button>
+      </div>
+
+      <!-- 3. imagen 2 (la de arriba a la derecha, la que queremos TAPAR) -->
+      <div class="cell img second" @mousemove="onSlotMove" @mouseleave="onSlotLeave">
+        <button class="img-btn" type="button" @click="openImageModal(1)">
+          <img :src="images[1].src" :alt="images[1].alt" />
+        </button>
+      </div>
+
+      <!-- 4. video -->
+      <div class="cell video">
+        <video
+          class="video-el"
+          src="https://videos.pexels.com/video-files/4828611/4828611-hd_1920_1080_30fps.mp4"
+          autoplay
+          muted
+          loop
+          playsinline
+        ></video>
+        <div class="video-label">Showreel</div>
+      </div>
+
+      <!-- 5. TEXTO que dispara el overlay -->
+      <div class="cell text" @mouseenter="showFlyout = true" @mouseleave="showFlyout = false">
+        <div class="text-content">
+          <h3>Dirección de arte</h3>
+          <p>Retrato · moda · beauty. Control de luz, composición y post.</p>
+          <p class="hint">Hover para ver más</p>
+        </div>
+
+        <!-- overlay ABSOLUTO sobre el GRID -->
+        <div class="text-flyout" :class="{ 'is-open': showFlyout }">
+          <h2>Dirección de arte</h2>
           <p>
-            Selección de trabajos personales y comerciales. Foco en retrato, moda y beauty con
-            exploración de contraste, composición y narrativa visual. El video resume el flujo:
-            pre-producción → shooting → retoque.
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed id bibendum orci. Donec
+            vitae leo id odio consectetur porta. Cras euismod justo non mi commodo, nec lacinia
+            risus molestie.
+          </p>
+          <p>
+            Phasellus sollicitudin lorem vitae velit efficitur, vel cursus ipsum maximus. Vivamus id
+            nisi ultrices, posuere enim non, tincidunt magna. Nullam vitae feugiat tortor.
+          </p>
+          <p>
+            Donec fringilla sem vitae turpis malesuada, nec consectetur sapien bibendum. Integer
+            viverra, mi eu varius gravida, justo dolor tempor lectus.
           </p>
         </div>
       </div>
     </div>
 
-    <!-- MODAL / POPUP -->
+    <!-- MODAL IMG -->
     <teleport to="body">
-      <div
-        v-if="isOpen && activeItem"
-        class="s1-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Vista ampliada de proyecto"
-        @click.self="closeModal"
-      >
-        <div class="s1-modal-box">
-          <button class="s1-close" type="button" aria-label="Cerrar" @click="closeModal">✕</button>
-
-          <div class="s1-modal-media">
-            <img :src="activeItem.src" :alt="activeItem.alt" />
-            <!-- Overlay gradiente blanco 25% desde abajo + texto -->
-            <div class="s1-gradient">
-              <p class="s1-caption">{{ caption100 }}</p>
-            </div>
-          </div>
-
-          <div class="s1-modal-nav" aria-hidden="true">
-            <button
-              class="s1-nav-btn"
-              @click.stop="activeIndex = (activeIndex! - 1 + projects.length) % projects.length"
-              aria-label="Anterior"
-            >
-              ⟵
-            </button>
-            <button
-              class="s1-nav-btn"
-              @click.stop="activeIndex = (activeIndex! + 1) % projects.length"
-              aria-label="Siguiente"
-            >
-              ⟶
-            </button>
-          </div>
+      <div v-if="isImageModalOpen && activeImage" class="img-modal" @click.self="closeImageModal">
+        <div class="img-box">
+          <button class="close" @click="closeImageModal" aria-label="Cerrar">×</button>
+          <img :src="activeImage.src" :alt="activeImage.alt" />
         </div>
       </div>
     </teleport>
   </section>
 </template>
 
-<style>
-/* ===== base / layout compatible con tu Slide2 ===== */
-.panel.slide1 {
+<script setup lang="ts">
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+
+const images = ref([
+  {
+    src: 'https://images.unsplash.com/photo-1516592673392-7fc07e52bff7?w=1200&auto=format&fit=crop&q=80',
+    alt: 'Retrato editorial',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1200&auto=format&fit=crop&q=80',
+    alt: 'Beauty studio',
+  },
+])
+
+/* modal imagen */
+const isImageModalOpen = ref(false)
+const activeIndex = ref<number | null>(null)
+const activeImage = computed(() =>
+  activeIndex.value == null ? null : images.value[activeIndex.value],
+)
+function openImageModal(i: number) {
+  activeIndex.value = i
+  isImageModalOpen.value = true
+  document.documentElement.classList.add('no-scroll')
+}
+function closeImageModal() {
+  isImageModalOpen.value = false
+  activeIndex.value = null
+  document.documentElement.classList.remove('no-scroll')
+}
+
+/* flyout de texto (solo hover) */
+const showFlyout = ref(false)
+
+/* ESC solo para el modal de imagen */
+function onKey(e: KeyboardEvent) {
+  if (e.key === 'Escape' && isImageModalOpen.value) {
+    closeImageModal()
+  }
+  if (isImageModalOpen.value && activeIndex.value != null) {
+    if (e.key === 'ArrowRight') activeIndex.value = (activeIndex.value + 1) % images.value.length
+    if (e.key === 'ArrowLeft')
+      activeIndex.value = (activeIndex.value - 1 + images.value.length) % images.value.length
+  }
+}
+onMounted(() => window.addEventListener('keydown', onKey))
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKey)
+  document.documentElement.classList.remove('no-scroll')
+})
+
+/* parallax mouse */
+function onSlotMove(e: MouseEvent) {
+  const box = e.currentTarget as HTMLElement
+  const img = box.querySelector('img') as HTMLElement | null
+  if (!img) return
+  const r = box.getBoundingClientRect()
+  const nx = (e.clientX - r.left) / r.width - 0.5
+  const ny = (e.clientY - r.top) / r.height - 0.5
+  img.style.transform = `translate(${nx * 14}px, ${ny * 14}px) scale(1.4)`
+}
+function onSlotLeave(e: MouseEvent) {
+  const box = e.currentTarget as HTMLElement
+  const img = box.querySelector('img') as HTMLElement | null
+  if (img) img.style.transform = ''
+}
+</script>
+
+<style scoped>
+.bento-full {
+  width: 100vw;
+  height: 100vh;
   background: #fff;
-  overflow: visible;
-}
-
-/* grid 2 columnas como en Slide2 */
-.s1-grid {
-  width: min(1200px, 92vw);
-  margin: 0 auto;
-  min-height: 100%;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: center;
-  gap: clamp(20px, 4vw, 60px);
-}
-
-/* ===== izquierda ===== */
-.s1-left {
-  display: grid;
-  align-content: start;
-  gap: clamp(12px, 1.6vw, 18px);
-}
-.s1-title {
+  display: flex;
   margin: 0;
-  font-size: clamp(28px, 5vw, 54px);
-  line-height: 1;
-  letter-spacing: 0.01em;
-  color: #0f172a;
-}
-.s1-media {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: clamp(12px, 1.6vw, 18px);
-  align-items: start;
-}
-
-/* tarjetas de imagen */
-.s1-card {
-  margin: 0;
-}
-.s1-thumb {
-  display: block;
-  position: relative;
-  width: 100%;
-  aspect-ratio: 4 / 5; /* similar a tus shots verticales */
-  border: none;
   padding: 0;
-  cursor: zoom-in;
-  border-radius: 14px;
-  overflow: hidden;
-  background: #f3f4f6;
-  box-shadow: 18px 24px 24px rgba(0, 0, 0, 0.08);
-  transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease;
-  will-change: transform;
 }
-.s1-thumb img {
+.grid {
+  position: relative; /* para anclar el overlay dentro del grid */
+  overflow: visible; /* dejar salir el overlay hacia arriba */
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  width: 100%;
+  height: 100%;
+}
+.cell {
+  position: relative;
+  /* OJO: antes teníamos overflow: hidden; eso estaba cortando el overlay */
+  overflow: visible;
+  background: #fff;
+}
+
+/* título */
+.title {
+  background: #e5e5e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.title-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.line {
+  font-weight: 900;
+  font-size: clamp(56px, 7vw, 100px);
+  line-height: 0.9;
+  color: #000;
+}
+.num {
+  font-weight: 800;
+  font-size: clamp(26px, 2.5vw, 40px);
+  margin-top: 6px;
+  color: #000;
+}
+
+/* imágenes */
+.img {
+  background: #ddd5d5;
+  overflow: hidden; /* solo las imágenes sí recortan */
+}
+.img.second {
+  background: #d3a9a9;
+}
+.img-btn {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+  display: block;
+  overflow: hidden;
+}
+.img-btn img {
+  width: 115%;
+  height: 115%;
+  object-fit: cover;
+  transform: scale(1.08);
+  transition: transform 0.35s ease-out;
+}
+.img-btn:hover img,
+.img-btn:focus-visible img {
+  transform: scale(1.5);
+}
+
+/* video */
+.video {
+  grid-column: 1 / 3;
+  grid-row: 2 / 3;
+  background: #6bcc94;
+  overflow: hidden;
+}
+.video-el {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scale(1);
-  transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.3, 1);
-  backface-visibility: hidden;
-}
-.s1-thumb:hover img,
-.s1-thumb:focus-visible img {
-  transform: scale(1.07); /* hover-zoom */
-}
-.s1-thumb:hover,
-.s1-thumb:focus-visible {
-  box-shadow: 26px 36px 38px rgba(0, 0, 0, 0.18);
-  transform: translateY(-2px);
-  outline: none;
-}
-
-/* video 16:9 */
-.s1-video {
-  grid-column: span 2;
-}
-.s1-video-el {
-  width: 100%;
-  aspect-ratio: 16 / 9;
   display: block;
-  background: #000;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 18px 24px 24px rgba(0, 0, 0, 0.08);
+}
+.video-label {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
 }
 
-/* ===== derecha ===== */
-.s1-right {
-  display: grid;
-  justify-items: start;
+/* ===== TEXTO ===== */
+.text {
+  grid-column: 3 / 4;
+  grid-row: 2 / 3;
+  background: #fff;
+  padding: clamp(20px, 3vw, 36px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  cursor: pointer;
+  /* muestro que puede superponerse */
+  z-index: 1;
 }
-.s1-copy {
-  max-width: 520px;
-  color: #0f172a;
+.text-content h3 {
+  margin: 0 0 6px;
+  font-size: clamp(20px, 2.4vw, 32px);
 }
-.s1-subtitle {
-  margin: 0 0 8px 0;
-  font-size: clamp(18px, 2.6vw, 24px);
-  color: #111827;
-}
-.s1-copy p {
+.text-content p {
   margin: 0;
-  font-size: clamp(14px, 1.6vw, 16px);
-  line-height: 1.55;
-  opacity: 0.9;
+  font-size: clamp(13px, 1.4vw, 16px);
+  color: rgba(0, 0, 0, 0.6);
+}
+.hint {
+  font-size: 0.7rem;
+  margin-top: 10px;
+  opacity: 0.45;
 }
 
-/* ===== modal ===== */
-.s1-modal {
+/* overlay que tapa la imagen de arriba derecha */
+.text-flyout {
+  position: absolute;
+  left: 0;
+  top: -100%; /* empieza justo sobre la imagen */
+  width: 100%;
+  height: 200%; /* tapa imagen (arriba) + texto (abajo) */
+  background: #fff;
+  padding: clamp(20px, 2.6vw, 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+  box-shadow: 0 26px 50px rgba(0, 0, 0, 0.12);
+  z-index: 5; /* por encima de la imagen de arriba */
+}
+.text-flyout.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+/* modal img */
+.img-modal {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.7);
   display: grid;
   place-items: center;
   z-index: 1000;
 }
-.s1-modal-box {
+.img-box {
   position: relative;
-  width: min(92vw, 1080px);
-}
-.s1-modal-media {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 10; /* caja flexible para la mayoría de retratos */
+  max-width: 85vw;
+  max-height: 85vh;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 40px 90px rgba(0, 0, 0, 0.45);
 }
-.s1-modal-media img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain; /* no recorta tu imagen en el modal */
+.img-box img {
+  display: block;
+  max-width: 100%;
+  max-height: 85vh;
+  object-fit: contain;
   background: #fff;
 }
-
-/* degradado blanco 25% desde abajo */
-.s1-gradient {
+.close {
   position: absolute;
-  inset: auto 0 0 0; /* pegado abajo */
-  height: 25%;
-  background: linear-gradient(
-    to top,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(255, 255, 255, 0.75) 60%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  display: flex;
-  align-items: end;
-  padding: 12px 16px;
-}
-.s1-caption {
-  margin: 0;
-  font-size: clamp(13px, 1.4vw, 15px);
-  color: #111827;
-}
-
-/* navegación modal */
-.s1-modal-nav {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  pointer-events: none;
-}
-.s1-nav-btn {
-  pointer-events: auto;
-  border: none;
-  background: rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
-  cursor: pointer;
-  margin: 0 8px;
-}
-.s1-close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.8);
-  cursor: pointer;
-}
-
-/* accesibilidad simple */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  clip: rect(0 0 0 0);
-  overflow: hidden;
-  white-space: nowrap;
+  top: 6px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
   border: 0;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  font-size: 22px;
+  cursor: pointer;
 }
 
-/* responsive: apila en móvil */
-@media (max-width: 860px) {
-  .s1-grid {
+/* responsive */
+@media (max-width: 900px) {
+  .grid {
     grid-template-columns: 1fr;
-    gap: 28px;
+    grid-template-rows: repeat(5, minmax(160px, 1fr));
   }
-  .s1-media {
-    grid-template-columns: 1fr 1fr;
+  .text-flyout {
+    top: 0;
+    height: 100%;
   }
-  .s1-right {
-    justify-items: center;
-    text-align: center;
-  }
-  .s1-copy {
-    max-width: 92vw;
-  }
-}
-
-/* bloquea scroll al abrir modal */
-html.no-scroll,
-html.no-scroll body {
-  overflow: hidden;
 }
 </style>
