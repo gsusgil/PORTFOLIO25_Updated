@@ -2,7 +2,7 @@
   <section class="panel bento-full">
     <div class="grid">
       <!-- 1. título -->
-      <div class="cell title">
+      <div class="cell title" @mousemove="onCellMove" @mouseleave="onCellLeave">
         <div class="title-inner">
           <span class="line">PRO</span>
           <span class="line">JECTS</span>
@@ -17,7 +17,7 @@
         </button>
       </div>
 
-      <!-- 3. imagen 2 (la de arriba a la derecha, la que queremos TAPAR) -->
+      <!-- 3. imagen 2 -->
       <div class="cell img second" @mousemove="onSlotMove" @mouseleave="onSlotLeave">
         <button class="img-btn" type="button" @click="openImageModal(1)">
           <img :src="images[1].src" :alt="images[1].alt" />
@@ -25,7 +25,7 @@
       </div>
 
       <!-- 4. video -->
-      <div class="cell video">
+      <div class="cell video" @mousemove="onCellMove" @mouseleave="onCellLeave">
         <video
           class="video-el"
           src="https://videos.pexels.com/video-files/4828611/4828611-hd_1920_1080_30fps.mp4"
@@ -37,15 +37,25 @@
         <div class="video-label">Showreel</div>
       </div>
 
-      <!-- 5. TEXTO que dispara el overlay -->
-      <div class="cell text" @mouseenter="showFlyout = true" @mouseleave="showFlyout = false">
+      <!-- 5. texto con overlay -->
+      <div
+        class="cell text"
+        @mouseenter="showFlyout = true"
+        @mouseleave="
+          () => {
+            showFlyout = false
+            onCellLeave($event as any)
+          }
+        "
+        @mousemove="onCellMove"
+      >
         <div class="text-content">
           <h3>Dirección de arte</h3>
           <p>Retrato · moda · beauty. Control de luz, composición y post.</p>
           <p class="hint">Hover para ver más</p>
         </div>
 
-        <!-- overlay ABSOLUTO sobre el GRID -->
+        <!-- overlay alineado con el de arriba (le sumamos el gap) -->
         <div class="text-flyout" :class="{ 'is-open': showFlyout }">
           <h2>Dirección de arte</h2>
           <p>
@@ -65,7 +75,7 @@
       </div>
     </div>
 
-    <!-- MODAL IMG -->
+    <!-- modal imagen -->
     <teleport to="body">
       <div v-if="isImageModalOpen && activeImage" class="img-modal" @click.self="closeImageModal">
         <div class="img-box">
@@ -91,12 +101,12 @@ const images = ref([
   },
 ])
 
-/* modal imagen */
 const isImageModalOpen = ref(false)
 const activeIndex = ref<number | null>(null)
 const activeImage = computed(() =>
   activeIndex.value == null ? null : images.value[activeIndex.value],
 )
+
 function openImageModal(i: number) {
   activeIndex.value = i
   isImageModalOpen.value = true
@@ -108,14 +118,11 @@ function closeImageModal() {
   document.documentElement.classList.remove('no-scroll')
 }
 
-/* flyout de texto (solo hover) */
 const showFlyout = ref(false)
 
-/* ESC solo para el modal de imagen */
+/* ESC + arrows */
 function onKey(e: KeyboardEvent) {
-  if (e.key === 'Escape' && isImageModalOpen.value) {
-    closeImageModal()
-  }
+  if (e.key === 'Escape' && isImageModalOpen.value) closeImageModal()
   if (isImageModalOpen.value && activeIndex.value != null) {
     if (e.key === 'ArrowRight') activeIndex.value = (activeIndex.value + 1) % images.value.length
     if (e.key === 'ArrowLeft')
@@ -128,49 +135,90 @@ onBeforeUnmount(() => {
   document.documentElement.classList.remove('no-scroll')
 })
 
-/* parallax mouse */
+/* sombra dinámica genérica (para title, video, text) */
+function onCellMove(e: MouseEvent) {
+  const el = e.currentTarget as HTMLElement
+  const r = el.getBoundingClientRect()
+  const nx = (e.clientX - r.left) / r.width - 0.5 // -0.5 → 0.5
+  const ny = (e.clientY - r.top) / r.height - 0.5
+
+  // cuanto más lejos del centro, más sombra hacia ese lado
+  const offsetX = -nx * 18
+  const offsetY = -ny * 14
+  el.style.boxShadow = `${offsetX}px ${offsetY}px 34px rgba(15, 23, 42, 0.14)`
+  el.style.transition = 'box-shadow 90ms ease-out'
+}
+function onCellLeave(e: MouseEvent) {
+  const el = e.currentTarget as HTMLElement
+  el.style.boxShadow = '0 0 0 rgba(0,0,0,0)'
+  el.style.transition = 'box-shadow 160ms ease-out'
+}
+
+/* parallax + sombra para las imágenes */
 function onSlotMove(e: MouseEvent) {
   const box = e.currentTarget as HTMLElement
   const img = box.querySelector('img') as HTMLElement | null
-  if (!img) return
   const r = box.getBoundingClientRect()
   const nx = (e.clientX - r.left) / r.width - 0.5
   const ny = (e.clientY - r.top) / r.height - 0.5
-  img.style.transform = `translate(${nx * 14}px, ${ny * 14}px) scale(1.4)`
+
+  // parallax que ya tenías
+  if (img) {
+    img.style.transform = `translate(${nx * 14}px, ${ny * 14}px) scale(1.4)`
+  }
+
+  // sombra dinámica sobre la tarjeta de imagen
+  const offsetX = -nx * 18
+  const offsetY = -ny * 14
+  box.style.boxShadow = `${offsetX}px ${offsetY}px 34px rgba(15, 23, 42, 0.14)`
+  box.style.transition = 'box-shadow 90ms ease-out'
 }
 function onSlotLeave(e: MouseEvent) {
   const box = e.currentTarget as HTMLElement
   const img = box.querySelector('img') as HTMLElement | null
   if (img) img.style.transform = ''
+  box.style.boxShadow = '0 0 0 rgba(0,0,0,0)'
+  box.style.transition = 'box-shadow 160ms ease-out'
 }
 </script>
 
 <style scoped>
+/* Panel general */
 .bento-full {
   width: 100vw;
   height: 100vh;
   background: #fff;
   display: flex;
-  margin: 0;
-  padding: 0;
+  padding: 24px;
+  box-sizing: border-box;
 }
+
+/* Grid principal */
 .grid {
-  position: relative; /* para anclar el overlay dentro del grid */
-  overflow: visible; /* dejar salir el overlay hacia arriba */
+  position: relative;
+  overflow: visible;
   display: grid;
+  /* guardamos el gap en una var para usarlo en el overlay */
+  --gap: 18px;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, 1fr);
   width: 100%;
   height: 100%;
-}
-.cell {
-  position: relative;
-  /* OJO: antes teníamos overflow: hidden; eso estaba cortando el overlay */
-  overflow: visible;
-  background: #fff;
+  gap: var(--gap);
 }
 
-/* título */
+/* Celdas base */
+.cell {
+  position: relative;
+  overflow: visible;
+  background: #fff;
+  border-radius: 24px;
+  /* pequeña sombra de reposo muy baja */
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  transition: box-shadow 120ms ease-out;
+}
+
+/* Título */
 .title {
   background: #e5e5e5;
   display: flex;
@@ -195,10 +243,11 @@ function onSlotLeave(e: MouseEvent) {
   color: #000;
 }
 
-/* imágenes */
+/* Imágenes */
 .img {
   background: #ddd5d5;
-  overflow: hidden; /* solo las imágenes sí recortan */
+  overflow: hidden;
+  border-radius: 24px;
 }
 .img.second {
   background: #d3a9a9;
@@ -208,7 +257,7 @@ function onSlotLeave(e: MouseEvent) {
   height: 100%;
   border: 0;
   background: transparent;
-  cursor: zoom-in;
+  cursor: pointer;
   display: block;
   overflow: hidden;
 }
@@ -219,17 +268,14 @@ function onSlotLeave(e: MouseEvent) {
   transform: scale(1.08);
   transition: transform 0.35s ease-out;
 }
-.img-btn:hover img,
-.img-btn:focus-visible img {
-  transform: scale(1.5);
-}
 
-/* video */
+/* Video */
 .video {
   grid-column: 1 / 3;
   grid-row: 2 / 3;
   background: #6bcc94;
   overflow: hidden;
+  border-radius: 24px;
 }
 .video-el {
   width: 100%;
@@ -248,7 +294,7 @@ function onSlotLeave(e: MouseEvent) {
   font-weight: 600;
 }
 
-/* ===== TEXTO ===== */
+/* Texto */
 .text {
   grid-column: 3 / 4;
   grid-row: 2 / 3;
@@ -258,7 +304,6 @@ function onSlotLeave(e: MouseEvent) {
   flex-direction: column;
   justify-content: center;
   cursor: pointer;
-  /* muestro que puede superponerse */
   z-index: 1;
 }
 .text-content h3 {
@@ -276,13 +321,15 @@ function onSlotLeave(e: MouseEvent) {
   opacity: 0.45;
 }
 
-/* overlay que tapa la imagen de arriba derecha */
+/* Overlay alineado con el de arriba (le sumamos el gap) */
 .text-flyout {
   position: absolute;
   left: 0;
-  top: -100%; /* empieza justo sobre la imagen */
+  /* estaba en -100%, ahora sube también el gap del grid */
+  top: calc(-100% - var(--gap));
+  /* y le sumamos ese gap abajo para que quede al ras */
+  height: calc(200% + var(--gap));
   width: 100%;
-  height: 200%; /* tapa imagen (arriba) + texto (abajo) */
   background: #fff;
   padding: clamp(20px, 2.6vw, 32px);
   display: flex;
@@ -295,7 +342,8 @@ function onSlotLeave(e: MouseEvent) {
     opacity 0.22s ease,
     transform 0.22s ease;
   box-shadow: 0 26px 50px rgba(0, 0, 0, 0.12);
-  z-index: 5; /* por encima de la imagen de arriba */
+  z-index: 5;
+  border-radius: 24px;
 }
 .text-flyout.is-open {
   opacity: 1;
@@ -303,7 +351,7 @@ function onSlotLeave(e: MouseEvent) {
   transform: translateY(0);
 }
 
-/* modal img */
+/* Modal imagen */
 .img-modal {
   position: fixed;
   inset: 0;
@@ -340,8 +388,11 @@ function onSlotLeave(e: MouseEvent) {
   cursor: pointer;
 }
 
-/* responsive */
+/* Responsive */
 @media (max-width: 900px) {
+  .bento-full {
+    padding: 18px;
+  }
   .grid {
     grid-template-columns: 1fr;
     grid-template-rows: repeat(5, minmax(160px, 1fr));

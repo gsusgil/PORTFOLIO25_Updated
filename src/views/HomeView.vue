@@ -57,41 +57,59 @@ const brandVariants = [
   { weight: 400, color: '#ffb3b3' },
   { weight: 500, color: '#ff8c8c' },
   { weight: 600, color: '#ff6b6b' },
-  { weight: 700, color: '#ff4d4d' },
+  { weight: 700, color: '#ff4d4d' }, // base
   { weight: 800, color: '#ff3030' },
   { weight: 900, color: '#ff1111' },
 ]
-const brandIndex = ref(4) // 700
-const brandWeight = ref(brandVariants[brandIndex.value].weight)
-const brandColor = ref(brandVariants[brandIndex.value].color)
+
+const brandIndex = ref(4) // base = 700
+const brandWeight = ref(brandVariants[4].weight)
+const brandColor = ref(brandVariants[4].color)
+
 let brandTimer: number | undefined
+let brandKickTimer: number | undefined
 
-function stepBrandVariant() {
-  const goUp = Math.random() < 0.6
-  let next = brandIndex.value + (goUp ? 1 : -1)
-
-  if (next < 0) next = 1
-  if (next >= brandVariants.length) next = brandVariants.length - 2
-
-  brandIndex.value = next
-  const v = brandVariants[next]
+function setBrand(idx: number) {
+  brandIndex.value = idx
+  const v = brandVariants[idx]
   brandWeight.value = v.weight
   brandColor.value = v.color
 }
 
-function onBrandEnter() {
-  clearInterval(brandTimer)
-  stepBrandVariant()
-  brandTimer = window.setInterval(() => {
-    stepBrandVariant()
-  }, 420)
+// drift corto entre 600–800 para que no parezca glitch
+function brandDrift() {
+  const current = brandIndex.value
+  // nos movemos solo entre 3 valores: 600 (3), 700 (4), 800 (5)
+  const allowed = [3, 4, 5]
+  // quita el actual de la lista para no repetir
+  const options = allowed.filter((i) => i !== current)
+  const next = options[Math.floor(Math.random() * options.length)]
+  setBrand(next)
 }
+
+function onBrandEnter() {
+  // limpiamos todo
+  clearInterval(brandTimer)
+  clearTimeout(brandKickTimer)
+
+  // 1) pequeño "kick" rápido
+  setBrand(5) // 800 / rojo un poco más fuerte
+
+  // 2) después de 140ms volvemos cerca del base
+  brandKickTimer = window.setTimeout(() => {
+    setBrand(4)
+
+    // 3) y empezamos el drift más lento / natural
+    brandTimer = window.setInterval(() => {
+      brandDrift()
+    }, 420) // este ritmo es más orgánico
+  }, 140)
+}
+
 function onBrandLeave() {
   clearInterval(brandTimer)
-  brandTimer = undefined
-  brandIndex.value = 4
-  brandWeight.value = brandVariants[4].weight
-  brandColor.value = brandVariants[4].color
+  clearTimeout(brandKickTimer)
+  setBrand(4) // back to base
 }
 
 // ===== Skills hover =====
@@ -275,16 +293,16 @@ async function toggleSpline() {
           <button class="link">Contact</button>
           <div class="contacts panel" :class="{ open: contactOpen }">
             <ul class="group">
-              <li>
-                LinkedIn
-                <span class="placeholder">(coming soon)</span>
-              </li>
-              <li @click="copyEmail">
-                Email
+              <li class="contact-item email-item" @click="copyEmail">
+                xxxxxxxxx@gmail.com
                 <span v-if="copied" class="copied">Copied!</span>
               </li>
               <li>
-                Teléfono (ES)
+                <a href="https://www.linkedin.com/in/tu-usuario" target="_blank" rel="noopener"
+                  >linkedin.com/in/tu-usuario</a
+                >
+              </li>
+              <li>
                 <span class="placeholder">+34 600 000 000</span>
               </li>
             </ul>
@@ -334,6 +352,7 @@ async function toggleSpline() {
   height: 100vh;
   overflow: hidden;
 }
+
 .stack {
   position: absolute;
   inset: 0;
@@ -352,7 +371,7 @@ async function toggleSpline() {
   z-index: 999;
 }
 
-/* Fade cross */
+/* Spline viewer */
 .viewer {
   position: absolute;
   inset: 0;
@@ -376,7 +395,7 @@ async function toggleSpline() {
   place-items: center;
 }
 
-/* ===== Marca ===== */
+/* Marca */
 .brand-off {
   font-family: var(--font-swiss, sans-serif);
   font-size: 2rem;
@@ -390,15 +409,16 @@ async function toggleSpline() {
 .brand-off__inner {
   display: inline-block;
   transition:
-    font-weight 0.16s ease,
-    color 0.16s ease,
+    font-weight 0.12s ease-out,
+    color 0.22s ease-out,
     transform 0.16s ease;
 }
+
 .brand-off:hover .brand-off__inner {
   transform: translateY(-1px);
 }
 
-/* UI */
+/* UI general */
 .ui {
   position: absolute;
   inset: 0;
@@ -411,29 +431,23 @@ async function toggleSpline() {
   --muted: rgba(15, 23, 42, 0.78);
   color: var(--txt);
 }
+
+/* tu spacing se queda */
 .top-row {
   position: absolute;
-  left: 0;
-  right: 0;
   top: var(--top-off);
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  align-items: start;
-  padding: 0 var(--side-pad);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-start;
+  gap: 25rem;
 }
+
 .slot {
   position: relative;
   pointer-events: auto;
 }
-.slot--left {
-  justify-self: start;
-}
-.slot--center {
-  justify-self: center;
-}
-.slot--right {
-  justify-self: end;
-}
+
 .link {
   background: transparent;
   border: 0;
@@ -449,29 +463,40 @@ async function toggleSpline() {
   opacity: 0.85;
 }
 
-/* Panels tipo dropdown */
+/* ========= dropdowns ========= */
+/* base */
+/* dropdowns alineados al botón */
 .panel {
   position: absolute;
-  top: 2.1rem;
-  right: 0;
+  top: calc(100% + 0.55rem);
   display: grid;
   gap: 1.1rem;
   opacity: 0;
-  transform: translateY(-8px);
+  transform: translate(-50%, -8px); /* centrado ↓ */
   transition:
     opacity 0.28s cubic-bezier(0.22, 0.61, 0.36, 1),
     transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
   pointer-events: none;
+  z-index: 30;
+  left: 50%; /* por defecto, centro */
 }
-.slot--left .panel {
-  left: 0;
+
+/* TODOS los slots → centro bajo el botón */
+.slot--left .panel,
+.slot--center .panel,
+.slot--right .panel {
+  left: 50%;
   right: auto;
+  transform: translate(-50%, -8px);
 }
+
 .panel.open {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate(-50%, 0);
   pointer-events: auto;
 }
+
+/* lista base (skills + contact) */
 .group {
   list-style: none;
   margin: 0;
@@ -494,30 +519,65 @@ async function toggleSpline() {
   transition-delay: calc(var(--g) * 140ms + var(--i) * 40ms);
 }
 
-/* stagger */
-.panel.open .group li,
-.slot--left:hover .group li,
-.slot--right:hover .group li {
+/* entrada escalonada */
+.panel.open .group li {
   opacity: 1;
   transform: translateY(0);
 }
 
-/* contactos: SIN hover de color */
-.contacts .group li {
+/* ===== CONTACTS (mismo estilo que skills) ===== */
+.contacts.panel .group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.contacts.panel .contact-item,
+.contacts.panel li {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  cursor: default;
-}
-.contacts .group li:nth-child(2) {
-  cursor: pointer;
-}
-.placeholder {
-  font-size: 0.68rem;
-  opacity: 0.7;
+  white-space: nowrap;
+  font-size: clamp(12px, 1.7vw, 15px);
+  line-height: 1.4;
+  color: var(--muted);
+  font-weight: 300;
 }
 
-/* popup copy */
+/* email → clicable y con mano */
+.contacts.panel .email-item,
+.contacts.panel .email-item * {
+  cursor: pointer;
+}
+.contacts.panel .email-item:hover {
+  opacity: 1;
+  color: #0f172a;
+  text-decoration: underline;
+}
+
+/* LinkedIn → clicable */
+.contacts.panel a {
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--muted);
+  opacity: 0.7;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease;
+}
+.contacts.panel a:hover {
+  opacity: 1;
+  color: #0f172a;
+  text-decoration: underline;
+}
+
+/* Teléfono */
+.contacts.panel .placeholder {
+  opacity: 0.7;
+  color: var(--muted);
+}
+
+/* badge "Copied!" */
 .copied {
   font-size: 0.65rem;
   background: #ffffff;
@@ -528,7 +588,13 @@ async function toggleSpline() {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
 }
 
-/* Bottom */
+/* skills: dentro cursor normal */
+:deep(.skills.panel),
+:deep(.skills.panel *) {
+  cursor: default;
+}
+
+/* bottom switch */
 .bottom-row {
   position: absolute;
   left: 0;
@@ -540,8 +606,6 @@ async function toggleSpline() {
   isolation: isolate;
   z-index: 1;
 }
-
-/* Switch */
 .spline-switch-wrapper {
   position: relative;
   display: inline-flex;
@@ -605,7 +669,7 @@ async function toggleSpline() {
   transform: translateX(-50%) translateY(0);
 }
 
-/* Modal */
+/* modal resume */
 .backdrop {
   position: fixed;
   inset: 0;
@@ -665,10 +729,15 @@ async function toggleSpline() {
 .download-btn:hover {
   opacity: 0.9;
 }
+
+/* responsive */
 @media (max-width: 640px) {
   .ui {
     --top-off: 64px;
     --bot-off: 64px;
+  }
+  .top-row {
+    gap: 2.5rem;
   }
   .modal {
     height: 80vh;
