@@ -330,18 +330,28 @@ async function toggleSpline() {
   </section>
 
   <!-- Modal Resume -->
-  <teleport to="body">
-    <div v-if="resumeOpen" class="backdrop" @click="closeResume">
-      <div class="modal" @click.stop>
-        <button class="close" @click="closeResume" aria-label="Cerrar modal">×</button>
-        <iframe class="doc" src="/public/documents/JesusGil_CV_GraphicDesigner.pdf" title="Resume"></iframe>
+  <!-- Modal Resume -->
+<teleport to="body">
+  <div v-if="resumeOpen" class="backdrop" @click="closeResume">
+    <div class="modal" @click.stop>
+      <button class="close" @click="closeResume" aria-label="Cerrar modal">×</button>
 
-        <div class="download-wrap">
-          <a href="/resume.pdf" download class="download-btn">Descargar PDF</a>
-        </div>
+      <!-- SIN /public -->
+      <iframe
+        class="doc"
+        src="/documents/JesusGil_CV_GraphicDesigner.pdf#toolbar=0&navpanes=0&scrollbar=0"
+        title="Resume"
+      ></iframe>
+
+      <div class="download-wrap">
+        <!-- que apunte al MISMO archivo -->
+        <a href="/documents/JesusGil_CV_GraphicDesigner.pdf" download class="download-btn">
+          Descargar PDF
+        </a>
       </div>
     </div>
-  </teleport>
+  </div>
+</teleport>
 
   <HorizontalSlides id="slides" />
 </template>
