@@ -8,24 +8,32 @@ const closeBtn = ref<HTMLButtonElement | null>(null)
 
 function openModal(e: MouseEvent) {
   const el = e.currentTarget as HTMLElement | null
-  modalTitle.value = el?.getAttribute('data-modal-title') || 'Detalle'
-  const pdfAttr = el?.getAttribute('data-modal-pdf')
-  modalPdf.value = pdfAttr && pdfAttr.trim() !== '' ? pdfAttr : '/resume.pdf'
+  const title = el?.getAttribute('data-modal-title') || 'Detalle'
+  const pdfAttr = (el?.getAttribute('data-modal-pdf') || '/resume.pdf').trim()
+  const openBlank = el?.getAttribute('data-open-blank') === 'true'
 
+  if (openBlank) {
+    window.open(pdfAttr, '_blank', 'noopener')
+    return
+  }
+
+  modalTitle.value = title
+  modalPdf.value = pdfAttr
   modalOpen.value = true
-  // seguimos bloqueando el body para que no se mueva el fondo
   document.documentElement.style.overflow = 'hidden'
   nextTick(() => closeBtn.value?.focus())
 }
+
 function closeModal() {
   modalOpen.value = false
   document.documentElement.style.overflow = ''
 }
+
 function onKey(e: KeyboardEvent) {
   if (e.key === 'Escape' && modalOpen.value) closeModal()
 }
 
-/* hover logic para apagar "DIGITAL" */
+/* hover logic para apagar “DIGITAL” */
 const cardsActive = ref(false)
 let hoverCount = 0
 let touchTimer: number | null = null
@@ -63,24 +71,25 @@ onBeforeUnmount(() => {
           @mouseleave="onCardLeave"
           @touchstart.passive="onCardTouch"
         >
-          <div class="card__tab">
-            <img
-              src="https://images.unsplash.com/photo-1595152772835-219674b2a8a6?auto=format&fit=crop&w=960&h=360&q=80&fm=png"
-              alt="Modelo A"
-            />
+          <div class="card__tab card__tab--img">
+            <img src="/image/revista_mosaic.png" alt="Mosaic cover" />
           </div>
+
           <div class="card__body">
-            <h3 class="card__title">Editorial A</h3>
-            <p class="card__p">Campaña retrato – enfoque en composición y luz natural.</p>
+            <h3 class="card__title">Design and Art Direction for MOSAIC</h3>
+            <p class="card__p">
+              ZIGURAT’s magazine focused on artificial intelligence applied to architecture.
+            </p>
             <div class="card__actions">
               <button
                 class="link"
                 type="button"
-                data-modal-title="Editorial A"
-                data-modal-pdf="/resume.pdf"
+                data-modal-title="MOSAIC Magazine"
+                data-modal-pdf="/documents/mosaic_mail_web_v2.pdf"
+                data-open-blank="true"
                 @click="openModal"
               >
-                Ver más
+                more here
               </button>
             </div>
           </div>
@@ -94,7 +103,7 @@ onBeforeUnmount(() => {
           @touchstart.passive="onCardTouch"
         >
           <div class="card__tab card__tab--img">
-            <img src="/image/Frame 1427.png" alt="Modelo B" />
+            <img src="/image/mails%26%26websitev2_img.png" alt="Mails & website" />
           </div>
           <div class="card__body">
             <h3 class="card__title">Editorial B</h3>
@@ -104,7 +113,8 @@ onBeforeUnmount(() => {
                 class="link"
                 type="button"
                 data-modal-title="Editorial B"
-                data-modal-pdf="/pdf/editorial-b.pdf"
+                data-modal-pdf="/documents/modal_mail_web.pdf"
+                data-open-blank="true"
                 @click="openModal"
               >
                 Ver más
@@ -113,7 +123,7 @@ onBeforeUnmount(() => {
           </div>
         </article>
 
-        <!-- C -->
+        <!-- C (modal normal) -->
         <article
           class="card"
           @mouseenter="onCardEnter"
@@ -152,8 +162,11 @@ onBeforeUnmount(() => {
           <button class="close" ref="closeBtn" type="button" @click="closeModal" aria-label="Close">
             ×
           </button>
-          <!-- aquí queremos scroll vertical -->
-          <iframe class="doc" :src="modalPdf" :title="modalTitle"></iframe>
+          <iframe
+            class="doc"
+            :src="`${modalPdf}#toolbar=0&navpanes=0&scrollbar=0`"
+            :title="modalTitle"
+          ></iframe>
         </div>
       </div>
     </teleport>
@@ -217,7 +230,7 @@ onBeforeUnmount(() => {
   padding: 0 !important;
   background: #fff !important;
   border: 0 !important;
-  box-shadow: 18px 24px 24px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: -20px 24px 24px rgba(0, 0, 0, 0.08) !important;
   width: var(--w);
   height: min(65vh, 520px);
   overflow: hidden;
@@ -232,7 +245,7 @@ onBeforeUnmount(() => {
   transform: translateY(0) !important;
 }
 
-/* header-img con misma altura en todas */
+/* header-img con misma altura */
 .panel.s3 .card__tab {
   height: var(--peek-h);
   border-top-left-radius: var(--radius);
@@ -249,7 +262,7 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center center;
+  object-position: center;
   display: block;
   transition: transform 0.35s ease;
 }
@@ -287,7 +300,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-/* ===== Modal (igual al de home pero sin botón de descarga) ===== */
+/* Modal */
 .backdrop {
   position: fixed;
   inset: 0;
@@ -304,7 +317,7 @@ onBeforeUnmount(() => {
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
-  overflow: auto; /* 👈 aquí activamos scroll dentro */
+  overflow: auto;
   display: flex;
   flex-direction: column;
 }
