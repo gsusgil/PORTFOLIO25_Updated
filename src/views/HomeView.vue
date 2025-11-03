@@ -294,16 +294,16 @@ async function toggleSpline() {
           <div class="contacts panel" :class="{ open: contactOpen }">
             <ul class="group">
               <li class="contact-item email-item" @click="copyEmail">
-                xxxxxxxxx@gmail.com
+                gsusgildesigner@gmail.com
                 <span v-if="copied" class="copied">Copied!</span>
               </li>
               <li>
-                <a href="https://www.linkedin.com/in/tu-usuario" target="_blank" rel="noopener"
-                  >linkedin.com/in/tu-usuario</a
+                <a href="https://www.linkedin.com/in/gsus-gil/" target="_blank" rel="noopener"
+                  >Jesus David Gil</a
                 >
               </li>
               <li>
-                <span class="placeholder">+34 600 000 000</span>
+                <span class="placeholder">+34 685 656 681</span>
               </li>
             </ul>
           </div>
@@ -334,7 +334,7 @@ async function toggleSpline() {
     <div v-if="resumeOpen" class="backdrop" @click="closeResume">
       <div class="modal" @click.stop>
         <button class="close" @click="closeResume" aria-label="Cerrar modal">×</button>
-        <iframe class="doc" src="/resume.pdf" title="Resume"></iframe>
+        <iframe class="doc" src="/public/documents/JesusGil_CV_GraphicDesigner.pdf" title="Resume"></iframe>
 
         <div class="download-wrap">
           <a href="/resume.pdf" download class="download-btn">Descargar PDF</a>

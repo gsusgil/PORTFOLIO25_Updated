@@ -2,25 +2,25 @@
   <section class="panel bento-full">
     <div class="grid">
       <!-- 1. título -->
-      <div class="cell title" @mousemove="onCellMove" @mouseleave="onCellLeave">
-        <div class="title-inner">
-          <span class="line">PRO</span>
-          <span class="line">JECTS</span>
-          <span class="num">25</span>
-        </div>
-      </div>
+       <!-- 1. título (reemplazado por imagen centrada y reducida) -->
+<div class="cell title" @mousemove="onCellMove" @mouseleave="onCellLeave">
+  <div class="title-inner">
+    <img class="title-img" src="/public/image/project_title_v2.png" alt="Projects" />
+  </div>
+</div>
+
 
       <!-- 2. imagen 1 -->
       <div class="cell img" @mousemove="onSlotMove" @mouseleave="onSlotLeave">
         <button class="img-btn" type="button" @click="openImageModal(0)">
-          <img :src="images[0].src" :alt="images[0].alt" />
+          <img :src="images[0].thumb" :alt="images[0].alt" />
         </button>
       </div>
 
       <!-- 3. imagen 2 -->
       <div class="cell img second" @mousemove="onSlotMove" @mouseleave="onSlotLeave">
         <button class="img-btn" type="button" @click="openImageModal(1)">
-          <img :src="images[1].src" :alt="images[1].alt" />
+          <img :src="images[1].thumb" :alt="images[1].alt" />
         </button>
       </div>
 
@@ -28,13 +28,12 @@
       <div class="cell video" @mousemove="onCellMove" @mouseleave="onCellLeave">
         <video
           class="video-el"
-          src="https://videos.pexels.com/video-files/4828611/4828611-hd_1920_1080_30fps.mp4"
+          src="/public/video/Resumen Stw 2025 B.mp4 "
           autoplay
           muted
           loop
           playsinline
         ></video>
-       
       </div>
 
       <!-- 5. texto con overlay -->
@@ -45,26 +44,31 @@
         @mousemove="onCellMove"
       >
         <div class="text-content">
-          <h3>Dirección de arte</h3>
-          <p>Retrato · moda · beauty. Control de luz, composición y post.</p>
-          <p class="hint">Hover para ver más</p>
+          <h3>Visual Identity –</h3>
+          <p>ZIGURAT Student Week 2025</p>
+          <p class="hint">more</p>
         </div>
 
         <!-- overlay alineado -->
         <div class="text-flyout" :class="{ 'is-open': showFlyout }">
-          <h2>Dirección de arte</h2>
+          <h2>Visual Identity –</h2>
+          <p>ZIGURAT Student Week 2025</p>
           <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed id bibendum orci. Donec
-            vitae leo id odio consectetur porta. Cras euismod justo non mi commodo, nec lacinia
-            risus molestie.
+            The visual identity for the ZIGURAT Student Week 2025 draws inspiration from Barcelona’s
+            architectural icons. The Casa Batlló served as a creative starting point, symbolizing
+            the blend of art, structure, and innovation that defines both the city and ZIGURAT.
           </p>
           <p>
-            Phasellus sollicitudin lorem vitae velit efficitur, vel cursus ipsum maximus. Vivamus id
-            nisi ultrices, posuere enim non, tincidunt magna. Nullam vitae feugiat tortor.
+            To anchor the design in its local context, the panots from Passeig de Gràcia were
+            reinterpreted as a unifying visual element. Their geometric patterns became a modular
+            grid system that shapes the background and composition, capturing the rhythm and texture
+            of Barcelona’s streets while reflecting the event’s spirit of connection and movement.
           </p>
           <p>
-            Donec fringilla sem vitae turpis malesuada, nec consectetur sapien bibendum. Integer
-            viverra, mi eu varius gravida, justo dolor tempor lectus.
+            The resulting system adapts seamlessly across formats: digital screens, signage, and
+            event materials. Beyond aesthetics, it communicates a sense of belonging and creativity
+            — a tribute to the city’s design culture and a reflection of the collaborative energy
+            that brought together over 200 participants from around the world.
           </p>
         </div>
       </div>
@@ -75,7 +79,7 @@
       <div v-if="isImageModalOpen && activeImage" class="img-modal" @click.self="closeImageModal">
         <div class="img-box">
           <button class="close" @click="closeImageModal" aria-label="Cerrar">×</button>
-          <img :src="activeImage.src" :alt="activeImage.alt" />
+          <img :src="activeModalSrc" :alt="activeAlt" />
         </div>
       </div>
     </teleport>
@@ -85,22 +89,42 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 
+/**
+ * Coloca tus archivos en /public/image/ y /public/video/
+ * y referencia con rutas absolutas: /image/..., /video/...
+ */
 const images = ref([
   {
-    src: 'https://images.unsplash.com/photo-1516592673392-7fc07e52bff7?w=1200&auto=format&fit=crop&q=80',
-    alt: 'Retrato editorial',
+    thumb: '/image/imgen_guia_stw25_slide1.png',
+    modal: '/image/imgen_guia_stw25_modal.png',
+    alt: 'STW25',
   },
   {
-    src: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1200&auto=format&fit=crop&q=80',
-    alt: 'Beauty studio',
+    thumb: '/image/concepto_stw25.png',
+    // modal opcional; si no lo pones, usa el thumb
+    modal: '/image/concepto_modal.png',
+    alt: 'ConceptoSTW25',
   },
 ])
 
 const isImageModalOpen = ref(false)
 const activeIndex = ref<number | null>(null)
+
+/** Para el v-if del modal (simplemente el item activo) */
 const activeImage = computed(() =>
   activeIndex.value == null ? null : images.value[activeIndex.value],
 )
+
+/** SRC que muestra el modal (usa modal si existe; si no, thumb) */
+const activeModalSrc = computed(() => {
+  if (activeIndex.value == null) return ''
+  const it = images.value[activeIndex.value]
+  return it.modal || it.thumb
+})
+const activeAlt = computed(() => {
+  if (activeIndex.value == null) return ''
+  return images.value[activeIndex.value].alt
+})
 
 function openImageModal(i: number) {
   activeIndex.value = i
@@ -162,7 +186,7 @@ function onSlotMove(e: MouseEvent) {
   const ny = (e.clientY - r.top) / r.height - 0.5
 
   if (img) {
-    img.style.transform = `translate(${nx * 14}px, ${ny * 14}px) scale(1.4)`
+    img.style.transform = `translate(${nx * 14}px, ${ny * 14}px) scale(1.2)` /* menos zoom */
   }
 
   const offsetX = -nx * 18
@@ -215,7 +239,7 @@ function onSlotLeave(e: MouseEvent) {
 
 /* Título */
 .title {
-  background: #e5e5e5;
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -240,13 +264,14 @@ function onSlotLeave(e: MouseEvent) {
 
 /* Imágenes */
 .img {
-  background: #ddd5d5;
+  background: #ffffff;
   overflow: hidden;
   border-radius: 24px;
 }
 .img.second {
-  background: #d3a9a9;
+  background: #ffffff;
 }
+
 .img-btn {
   width: 100%;
   height: 100%;
@@ -257,9 +282,10 @@ function onSlotLeave(e: MouseEvent) {
   overflow: hidden;
 }
 .img-btn img {
-  width: 115%;
-  height: 115%;
-  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* centradas y sin franjas */
+  object-position: center;
   transform: scale(1.08);
   transition: transform 0.35s ease-out;
 }
@@ -304,6 +330,7 @@ function onSlotLeave(e: MouseEvent) {
 .text-content h3 {
   margin: 0 0 6px;
   font-size: clamp(20px, 2.4vw, 32px);
+  color: #0f172a;
 }
 .text-content p {
   margin: 0;
@@ -327,7 +354,8 @@ function onSlotLeave(e: MouseEvent) {
   padding: clamp(20px, 2.6vw, 32px);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  justify-content: center; /* centra el contenido del overlay */
+  color: #0f172a;
   opacity: 0;
   pointer-events: none;
   transform: translateY(10px);
@@ -337,6 +365,9 @@ function onSlotLeave(e: MouseEvent) {
   box-shadow: 0 26px 50px rgba(0, 0, 0, 0.12);
   z-index: 5;
   border-radius: 24px;
+}
+.text-flyout p {
+  color: rgba(15, 23, 42, 0.78);
 }
 .text-flyout.is-open {
   opacity: 1;

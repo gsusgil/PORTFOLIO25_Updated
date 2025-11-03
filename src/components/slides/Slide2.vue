@@ -233,15 +233,12 @@ onBeforeUnmount(() => {
       <!-- COLUMNA DERECHA: COPY -->
       <div class="s2-right">
         <div class="s2-copy">
-          <h2 class="title">Lorem Ipsum is simply dummy</h2>
+          <h3 class="title">Social Media Creatives -</h3>
           <p class="subtitle">
-            Lorem Ipsum is simply dummy text of the printing and typesetting industry.
+            
           </p>
           <p class="body slot-text">
-            Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an
-            unknown printer took a galley of type and scrambled it to make a type specimen book. It
-            has survived not only five centuries, but also the leap into electronic typesetting,
-            remaining essentially unchanged.
+            Design and art direction for social media campaigns — both organic and paid — aimed at showcasing programs and resources while nurturing leads. Each piece was optimized for engagement and clarity, maintaining visual consistency with ZIGURAT’s brand identity. Some paid formats achieved a CTR of up to 0.9%, reflecting effective visual communication and audience alignment.
           </p>
         </div>
       </div>
@@ -439,27 +436,33 @@ onBeforeUnmount(() => {
   display: grid;
   align-items: center;
 }
+/* Tipografía consistente con Slide 1 */
 .s2-copy {
-  max-width: 520px;
-  color: #0f172a; /* gris oscuro legible sobre fondo blanco */
+  color: #0f172a; /* texto principal */
 }
+
 .s2-copy .title {
-  margin: 0 0 0.5rem 0;
-  font-size: clamp(22px, 3.6vw, 34px);
-  line-height: 1.15;
-  color: #dc2626; /* rojo como en tu mock; cámbialo si quieres */
+  margin: 0 0 40px;
+  font-size: clamp(20px, 2.4vw, 32px); /* como el h3 de slide1 */
+  line-height: 1.1;
+  font-weight: 700;
+  color: #0f172a;
 }
+
 .s2-copy .subtitle {
-  margin: 0 0 0.5rem 0;
-  font-size: clamp(14px, 1.6vw, 16px);
-  opacity: 0.85;
+  margin: 0;
+  font-size: clamp(13px, 1.4vw, 16px);
+  line-height: 1.45;
+  color: rgba(15, 23, 42, 0.78); /* muted */
 }
+
 .s2-copy .body {
   margin: 0;
-  font-size: clamp(13px, 1.4vw, 15px);
-  line-height: 1.55;
-  opacity: 0.9;
+  font-size: clamp(13px, 1.4vw, 16px);
+  line-height: 1.6;
+  color: rgba(15, 23, 42, 0.78); /* muted */
 }
+
 
 /* Responsive: apila en móvil */
 @media (max-width: 860px) {
