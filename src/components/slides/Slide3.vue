@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 
+/* ===== Modal PDF (solo para la card C) ===== */
 const modalOpen = ref(false)
 const modalTitle = ref('Detalle')
 const modalPdf = ref('/resume.pdf')
@@ -12,11 +13,13 @@ function openModal(e: MouseEvent) {
   const pdfAttr = (el?.getAttribute('data-modal-pdf') || '/resume.pdf').trim()
   const openBlank = el?.getAttribute('data-open-blank') === 'true'
 
+  // A y B → abrir en pestaña nueva
   if (openBlank) {
     window.open(pdfAttr, '_blank', 'noopener')
     return
   }
 
+  // C → modal
   modalTitle.value = title
   modalPdf.value = pdfAttr
   modalOpen.value = true
@@ -33,23 +36,44 @@ function onKey(e: KeyboardEvent) {
   if (e.key === 'Escape' && modalOpen.value) closeModal()
 }
 
-/* hover logic para apagar “DIGITAL” */
+/* ===== Fondo dinámico con la imagen de la card en hover ===== */
+const stageEl = ref<HTMLDivElement | null>(null)
 const cardsActive = ref(false)
 let hoverCount = 0
 let touchTimer: number | null = null
 
-function onCardEnter() {
+function setStageBgFromCard(card?: HTMLElement | null) {
+  const url = card?.querySelector('img')?.getAttribute('src') || ''
+  if (!stageEl.value) return
+  if (url) {
+    stageEl.value.style.setProperty('--bg-url', `url("${url}")`)
+    stageEl.value.classList.add('has-bg')
+  } else {
+    stageEl.value.classList.remove('has-bg')
+    stageEl.value.style.removeProperty('--bg-url')
+  }
+}
+
+function onCardEnter(e?: MouseEvent) {
   hoverCount++
   cardsActive.value = true
+  setStageBgFromCard(e?.currentTarget as HTMLElement | null)
 }
 function onCardLeave() {
   hoverCount = Math.max(0, hoverCount - 1)
-  if (!hoverCount) cardsActive.value = false
+  if (!hoverCount) {
+    cardsActive.value = false
+    setStageBgFromCard(null)
+  }
 }
-function onCardTouch() {
+function onCardTouch(e: TouchEvent) {
   cardsActive.value = true
+  setStageBgFromCard(e.currentTarget as HTMLElement | null)
   if (touchTimer) clearTimeout(touchTimer)
-  touchTimer = window.setTimeout(() => (cardsActive.value = false), 1200)
+  touchTimer = window.setTimeout(() => {
+    cardsActive.value = false
+    setStageBgFromCard(null)
+  }, 1200)
 }
 
 onMounted(() => window.addEventListener('keydown', onKey))
@@ -62,12 +86,12 @@ onBeforeUnmount(() => {
 
 <template>
   <section id="slide-3" class="panel s3" style="padding: 0">
-    <div class="stage" :class="{ 'cards-active': cardsActive }">
+    <div class="stage" ref="stageEl" :class="{ 'cards-active': cardsActive }">
       <div class="deck">
-        <!-- A -->
+        <!-- A (blank) -->
         <article
           class="card"
-          @mouseenter="onCardEnter"
+          @mouseenter="onCardEnter($event)"
           @mouseleave="onCardLeave"
           @touchstart.passive="onCardTouch"
         >
@@ -95,10 +119,10 @@ onBeforeUnmount(() => {
           </div>
         </article>
 
-        <!-- B -->
+        <!-- B (blank) -->
         <article
           class="card"
-          @mouseenter="onCardEnter"
+          @mouseenter="onCardEnter($event)"
           @mouseleave="onCardLeave"
           @touchstart.passive="onCardTouch"
         >
@@ -106,8 +130,11 @@ onBeforeUnmount(() => {
             <img src="/image/mails%26%26websitev2_img.png" alt="Mails & website" />
           </div>
           <div class="card__body">
-            <h3 class="card__title">Editorial B</h3>
-            <p class="card__p">Producción de moda con contraste de color y textura.</p>
+            <h3 class="card__title">Email Campaigns & Landing Page Design</h3>
+            <p class="card__p">
+              Coordinated email and landing page design that ensures brand consistency and a
+              seamless user journey.
+            </p>
             <div class="card__actions">
               <button
                 class="link"
@@ -117,37 +144,37 @@ onBeforeUnmount(() => {
                 data-open-blank="true"
                 @click="openModal"
               >
-                Ver más
+                more here
               </button>
             </div>
           </div>
         </article>
 
-        <!-- C (modal normal) -->
+        <!-- C (modal interno) -->
         <article
           class="card"
-          @mouseenter="onCardEnter"
+          @mouseenter="onCardEnter($event)"
           @mouseleave="onCardLeave"
           @touchstart.passive="onCardTouch"
         >
           <div class="card__tab">
-            <img
-              src="https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=960&h=360&q=80&fm=png"
-              alt="Modelo C"
-            />
+            <img src="/image/paula_img.png" alt="Brand Manual" />
           </div>
           <div class="card__body">
-            <h3 class="card__title">Editorial C</h3>
-            <p class="card__p">Fotografía artística de retrato – luz dura y fondo oscuro.</p>
+            <h3 class="card__title">Brand Identity Guidelines</h3>
+            <p class="card__p">
+              Comprehensive brand manual detailing the visual identity, logo applications, and usage
+              guidelines for consistent communication.
+            </p>
             <div class="card__actions">
               <button
                 class="link"
                 type="button"
-                data-modal-title="Editorial C"
-                data-modal-pdf="/resume.pdf"
+                data-modal-title="Brand Identity Guidelines"
+                data-modal-pdf="/documents/manual-Paula-Belil.pdf"
                 @click="openModal"
               >
-                Ver más
+                more here
               </button>
             </div>
           </div>
@@ -155,7 +182,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Modal PDF -->
+    <!-- Modal PDF (solo C) -->
     <teleport to="body">
       <div v-if="modalOpen" class="backdrop" @click.self="closeModal">
         <div class="modal" @click.stop>
@@ -182,6 +209,7 @@ onBeforeUnmount(() => {
   --peek-h: 240px;
 }
 
+/* ===== Stage con fondo dinámico (blur 50% opacidad) ===== */
 .panel.s3 .stage {
   position: relative;
   height: 100vh;
@@ -190,15 +218,34 @@ onBeforeUnmount(() => {
   overflow: hidden;
   padding: clamp(8px, 2vw, 24px);
   color: var(--txt);
+  --bg-url: ''; /* la setea JS al hover */
 }
+.panel.s3 .stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0; /* debajo de texto y cards */
+  background: var(--bg-url) center / cover no-repeat;
+  filter: blur(14px);
+  opacity: 0;
+  transition:
+    opacity 300ms ease,
+    filter 300ms ease;
+  transform: translateZ(0);
+}
+.panel.s3 .stage.has-bg::before {
+  opacity: 0.5; /* 50% */
+}
+
+/* Texto grande del fondo */
 .panel.s3 .stage::after {
-  content: 'DIGITAL';
+  content: 'GRAPHIC DESIGN';
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
   font-weight: 800;
-  font-size: clamp(56px, 18vw, 220px);
+  font-size: clamp(56px, 18vw, 150px);
   letter-spacing: 0.06em;
   color: #0f172a;
   opacity: 0.06;
@@ -206,13 +253,14 @@ onBeforeUnmount(() => {
     opacity 0.34s ease,
     filter 0.34s ease;
   pointer-events: none;
-  z-index: 0;
+  z-index: 1; /* sobre el fondo blur, bajo las cards */
 }
 .panel.s3 .stage.cards-active::after {
   opacity: 0;
   filter: blur(10px);
 }
 
+/* Las cards por encima de todo */
 .panel.s3 .deck {
   position: absolute;
   left: 0;
@@ -223,7 +271,7 @@ onBeforeUnmount(() => {
   gap: 40px;
   padding: 0 24px 8px;
   pointer-events: none;
-  z-index: 1;
+  z-index: 2;
 }
 
 .panel.s3 .card {
@@ -292,7 +340,7 @@ onBeforeUnmount(() => {
   margin-top: auto;
 }
 .panel.s3 .link {
-  color: #0a66c2;
+  color: #0f172a;
   text-decoration: underline;
   font-weight: 600;
   background: none;

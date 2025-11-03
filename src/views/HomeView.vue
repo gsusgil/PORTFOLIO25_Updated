@@ -331,27 +331,27 @@ async function toggleSpline() {
 
   <!-- Modal Resume -->
   <!-- Modal Resume -->
-<teleport to="body">
-  <div v-if="resumeOpen" class="backdrop" @click="closeResume">
-    <div class="modal" @click.stop>
-      <button class="close" @click="closeResume" aria-label="Cerrar modal">×</button>
+  <teleport to="body">
+    <div v-if="resumeOpen" class="backdrop" @click="closeResume">
+      <div class="modal" @click.stop>
+        <button class="close" @click="closeResume" aria-label="Cerrar modal">×</button>
 
-      <!-- SIN /public -->
-      <iframe
-        class="doc"
-        src="/documents/JesusGil_CV_GraphicDesigner.pdf#toolbar=0&navpanes=0&scrollbar=0"
-        title="Resume"
-      ></iframe>
+        <!-- SIN /public -->
+        <iframe
+          class="doc"
+          src="/documents/JesusGil_CV_GraphicDesigner.pdf#toolbar=0&navpanes=0&scrollbar=0"
+          title="Resume"
+        ></iframe>
 
-      <div class="download-wrap">
-        <!-- que apunte al MISMO archivo -->
-        <a href="/documents/JesusGil_CV_GraphicDesigner.pdf" download class="download-btn">
-          Descargar PDF
-        </a>
+        <div class="download-wrap">
+          <!-- que apunte al MISMO archivo -->
+          <a href="/documents/JesusGil_CV_GraphicDesigner.pdf" download class="download-btn">
+            Descargar PDF
+          </a>
+        </div>
       </div>
     </div>
-  </div>
-</teleport>
+  </teleport>
 
   <HorizontalSlides id="slides" />
 </template>
@@ -753,5 +753,13 @@ async function toggleSpline() {
     height: 80vh;
     padding-top: 0;
   }
+}
+
+:deep(.skills.panel) {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  column-gap: 1.6rem;
+  align-items: start;
 }
 </style>
