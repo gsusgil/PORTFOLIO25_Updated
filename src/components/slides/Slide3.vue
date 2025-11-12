@@ -140,7 +140,7 @@ onBeforeUnmount(() => {
                 class="link"
                 type="button"
                 data-modal-title="Editorial B"
-                data-modal-pdf="/documents/modal_mail_web.pdf"
+                data-modal-pdf="/documents/modal_mail_web_v2.pdf"
                 data-open-blank="true"
                 @click="openModal"
               >
